@@ -49,6 +49,9 @@ contract MagicDCA is AutomateTaskCreator {
         swapRouter = _swapRouter;
     }
 
+    // TODO: Delete this
+    function receive() external payable {}
+
     function setOracle(address token, address oracle) public {
         // Set the oracle address for a specific token
         tokenToOracle[token] = oracle;
@@ -60,6 +63,7 @@ contract MagicDCA is AutomateTaskCreator {
         address oracleAddress = tokenToOracle[token];
         require(oracleAddress != address(0), "Oracle not set for this token");
 
+        // TODO: also check that price feed is not older than 10 minutes
         AggregatorV3Interface priceFeed = AggregatorV3Interface(oracleAddress);
         (, int price, , , ) = priceFeed.latestRoundData();
         uint8 decimals = priceFeed.decimals();
@@ -169,10 +173,10 @@ contract MagicDCA is AutomateTaskCreator {
         return tasks;
     }
 
-    function executeDcaTask(
-        address owner,
-        uint256 _id
-    ) external onlyDedicatedMsgSender {
+    function executeDcaTask(address owner, uint256 _id) external {
+        // TODO: Uncomment this
+        // ) external onlyDedicatedMsgSender {
+
         // Fetch the task
         DcaTask storage task = dcaTasks[owner][_id];
 
@@ -189,6 +193,8 @@ contract MagicDCA is AutomateTaskCreator {
 
         // 2. Calculate gelato fee (placeholder, replace with actual calculation)
         (uint256 fee, address feeToken) = _getFeeDetails();
+
+        // TODO: Check if fee token is USDC, if not, convert to USDC
         uint256 amountAfterFee = task.amount - fee;
 
         // 3. Approve USDC from this contract to Swap router - minus gelato fee
@@ -222,7 +228,8 @@ contract MagicDCA is AutomateTaskCreator {
         }
 
         // 5. Pay for gelato fee (if applicable)
-        _transfer(fee, feeToken);
+        // TODO: Uncomment this
+        // _transfer(fee, feeToken);
 
         // Update the lastExecuted timestamp
         task.lastExecuted = block.timestamp;
