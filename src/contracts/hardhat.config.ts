@@ -19,9 +19,13 @@ const config: HardhatUserConfig = {
   solidity: "0.8.24",
   networks: {
     hardhat: {
-      mining: {
-        interval: 1000,
+      forking: {
+        url: `https://eth-mainnet.alchemyapi.io/v2/${providerApiKey}`,
+        enabled: true,
       },
+      // mining: {
+      //   interval: 1000,
+      // },
     },
     sepolia: {
       url: `https://eth-sepolia.g.alchemy.com/v2/${providerApiKey}`,

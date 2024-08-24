@@ -2,6 +2,8 @@
 pragma solidity ^0.8.24;
 
 import "./integrations/AutomateTaskCreator.sol";
+import "@uniswap/v3-periphery/contracts/interfaces/ISwapRouter.sol";
+import "@uniswap/v3-periphery/contracts/libraries/TransferHelper.sol";
 
 struct OutputSwap {
     address token;
@@ -26,13 +28,16 @@ contract MagicDCA is AutomateTaskCreator {
     mapping(address => mapping(uint256 => DcaTask)) public dcaTasks;
     mapping(address => uint256[]) public userTaskIds;
 
+    address public constant UNISWAP_V3_ROUTER =
+        0xE592427A0AEce92De3Edee1F18E0157C05861564; // Mainnet address
+    address public constant USDC = 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48; // Mainnet address
+    ISwapRouter public immutable swapRouter = ISwapRouter(UNISWAP_V3_ROUTER);
+
     event DcaTaskCreated(address indexed user, uint256 taskId, string name);
     event DcaTaskDeleted(address indexed user, uint256 taskId);
     event DcaTaskExecuted(address indexed user, uint256 taskId);
 
     constructor(address payable _automate) AutomateTaskCreator(_automate) {}
-
-    function receive() external payable {}
 
     function createDcaTask(
         string memory _name,
@@ -67,9 +72,9 @@ contract MagicDCA is AutomateTaskCreator {
             maxCount: _maxCount,
             feeToken: _feeToken,
             gelatoTaskId: bytes32(0), // Initialize as empty, will set after creating Gelato task
-            outputSwaps: _outputSwaps
+            outputSwaps: _outputSwaps,
             created: block.timestamp,
-            lastExecuted: block.timestamp,
+            lastExecuted: block.timestamp
         });
 
         dcaTasks[msg.sender][taskId] = newTask;
@@ -108,7 +113,7 @@ contract MagicDCA is AutomateTaskCreator {
     }
 
     function deleteDcaTask(uint256 _taskId) external {
-        // TODO: Check this require
+        // Check if the task exists
         require(dcaTasks[msg.sender][_taskId].id != 0, "Task does not exist");
         delete dcaTasks[msg.sender][_taskId];
 
@@ -141,11 +146,54 @@ contract MagicDCA is AutomateTaskCreator {
         // Fetch the task
         DcaTask storage task = dcaTasks[owner][_id];
 
-        // TODO: Check this require
+        // Check if the task exists
         require(task.id != 0, "Task does not exist");
 
+        // 1. Move USDC from user wallet to this contract
+        TransferHelper.safeTransferFrom(
+            USDC,
+            msg.sender,
+            address(this),
+            task.amount
+        );
+
+        // 2. Calculate gelato fee (placeholder, replace with actual calculation)
         (uint256 fee, address feeToken) = _getFeeDetails();
+        uint256 amountAfterFee = task.amount - fee;
+
+        // 3. Approve USDC from this contract to Swap router - minus gelato fee
+        TransferHelper.safeApprove(USDC, address(swapRouter), amountAfterFee);
+
+        // 4. Loop through output swaps
+        for (uint256 i = 0; i < task.outputSwaps.length; i++) {
+            OutputSwap memory outputSwap = task.outputSwaps[i];
+            uint256 amountIn = (amountAfterFee * outputSwap.percentage) / 100;
+
+            // 4.a: Fetch price from oracle (if required)
+            // Placeholder for fetching price from oracle
+
+            // 4.b: Perform Uniswap Swap
+            ISwapRouter.ExactInputSingleParams memory params = ISwapRouter
+                .ExactInputSingleParams({
+                    tokenIn: USDC,
+                    tokenOut: outputSwap.token,
+                    fee: 3000,
+                    recipient: msg.sender,
+                    deadline: block.timestamp,
+                    amountIn: amountIn,
+                    amountOutMinimum: 0,
+                    sqrtPriceLimitX96: 0
+                });
+
+            // Execute the swap
+            swapRouter.exactInputSingle(params);
+        }
+
+        // 5. Pay for gelato fee (if applicable)
         _transfer(fee, feeToken);
+
+        // Update the lastExecuted timestamp
+        task.lastExecuted = block.timestamp;
 
         emit DcaTaskExecuted(owner, _id);
     }
