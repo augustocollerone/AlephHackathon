@@ -4,6 +4,9 @@ pragma solidity ^0.8.24;
 import "./integrations/AutomateTaskCreator.sol";
 import "@uniswap/v3-periphery/contracts/interfaces/ISwapRouter.sol";
 import "@uniswap/v3-periphery/contracts/libraries/TransferHelper.sol";
+import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/shared/interfaces/AggregatorV3Interface.sol";
+
+import "hardhat/console.sol";
 
 struct OutputSwap {
     address token;
@@ -32,6 +35,9 @@ contract MagicDCA is AutomateTaskCreator {
 
     address public constant USDC = 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48; // Mainnet address
 
+    // Mapping from token address to Chainlink oracle address
+    mapping(address => address) public tokenToOracle;
+
     event DcaTaskCreated(address indexed user, uint256 taskId, string name);
     event DcaTaskDeleted(address indexed user, uint256 taskId);
     event DcaTaskExecuted(address indexed user, uint256 taskId);
@@ -41,6 +47,23 @@ contract MagicDCA is AutomateTaskCreator {
         ISwapRouter _swapRouter
     ) AutomateTaskCreator(_automate) {
         swapRouter = _swapRouter;
+    }
+
+    function setOracle(address token, address oracle) public {
+        // Set the oracle address for a specific token
+        tokenToOracle[token] = oracle;
+    }
+
+    function getLatestPrice(
+        address token
+    ) public view returns (int price, uint8 decimals) {
+        address oracleAddress = tokenToOracle[token];
+        require(oracleAddress != address(0), "Oracle not set for this token");
+
+        AggregatorV3Interface priceFeed = AggregatorV3Interface(oracleAddress);
+        (, int price, , , ) = priceFeed.latestRoundData();
+        uint8 decimals = priceFeed.decimals();
+        return (price, decimals);
     }
 
     function createDcaTask(
@@ -178,6 +201,8 @@ contract MagicDCA is AutomateTaskCreator {
 
             // 4.a: Fetch price from oracle (if required)
             // Placeholder for fetching price from oracle
+            (int price, uint8 decimals) = getLatestPrice(outputSwap.token);
+            int minOutput = (int(amountIn) * price) / int(10 ** decimals);
 
             // 4.b: Perform Uniswap Swap
             ISwapRouter.ExactInputSingleParams memory params = ISwapRouter
@@ -188,7 +213,7 @@ contract MagicDCA is AutomateTaskCreator {
                     recipient: msg.sender,
                     deadline: block.timestamp,
                     amountIn: amountIn,
-                    amountOutMinimum: 0,
+                    amountOutMinimum: uint256(minOutput),
                     sqrtPriceLimitX96: 0
                 });
 

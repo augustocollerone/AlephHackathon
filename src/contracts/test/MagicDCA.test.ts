@@ -12,6 +12,9 @@ const USDC_ADDRESS = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48";
 const LINK_ADDRESS = "0x514910771AF9Ca656af840dff83E8264EcF986CA";
 const UNI_ADDRESS = "0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984";
 
+const WETH_PRICE_FEED = "0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419";
+const DAI_PRICE_FEED = "0xAed0c38402a5d19df6E4c03F4E2DceD6e29c1ee9";
+
 const DAI_DECIMALS = 18;
 const USDC_DECIMALS = 6;
 const SwapRouterAddress = "0xE592427A0AEce92De3Edee1F18E0157C05861564";
@@ -130,13 +133,16 @@ describe("MagicDCA", function () {
 
     const USDC = new hre.ethers.Contract(USDC_ADDRESS, ercAbi, signer);
     const WETH = new hre.ethers.Contract(WETH_ADDRESS, ercAbi, signer);
+    const DAI = new hre.ethers.Contract(DAI_ADDRESS, ercAbi, signer);
 
-    const usdcBalanceAfter = await USDC.balanceOf(signer.address);
-    const usdcBalanceAfterFormatted = Number(
-      hre.ethers.formatUnits(usdcBalanceAfter, USDC_DECIMALS)
+    const usdcBalanceBeforeDCA = await USDC.balanceOf(signer.address);
+    const usdcBalanceBeforeFormatted = Number(
+      hre.ethers.formatUnits(usdcBalanceBeforeDCA, USDC_DECIMALS)
     );
+    console.log("USDC BEFORE Starting MAGIC DCA:", usdcBalanceBeforeFormatted);
 
-    console.log("USDC BEFORE Starting MAGIC DCA:", usdcBalanceAfterFormatted);
+    const WETHbalanceBeforeDCA = await WETH.balanceOf(signer.address);
+    const DAIBalanceBeforeDCA = await DAI.balanceOf(signer.address);
 
     const magicDCAFactory = await hre.ethers.getContractFactory("MagicDCA");
     const magicDCA = await magicDCAFactory.deploy(
@@ -146,12 +152,12 @@ describe("MagicDCA", function () {
     magicDCA.waitForDeployment();
 
     const magicDCAAddress = await magicDCA.getAddress();
-    console.log("SimpleSwap deployed to:", magicDCAAddress);
+    console.log("Magic DCA deployed to:", magicDCAAddress);
 
     // Create DCA tasks
     const newDca = {
       name: "test",
-      amount: 100,
+      amount: 50,
       interval: 100000,
       maxCount: 10,
       feeToken: "0x7b79995e5f793A07Bc00c21412e50Ecae098E7f9",
@@ -186,12 +192,71 @@ describe("MagicDCA", function () {
     );
     await approveWETHTx.wait();
 
+    // Set price feed oracleFor WETH and DAI
+
+    const WETHpriceFeedOracle = await magicDCA.setOracle(
+      WETH_ADDRESS,
+      WETH_PRICE_FEED
+    );
+
+    const DAIpriceFeedOracle = await magicDCA.setOracle(
+      DAI_ADDRESS,
+      DAI_PRICE_FEED
+    );
+
     // Execute DCA task
-    const executeDcaTask = await magicDCA.executeDcaTask(
+    const executeDcaTask = await magicDCA.executeDcaTask2(
       signer.address,
       dcaTaskId
     );
 
-    console.log("DCA task executed: ", executeDcaTask);
+    await executeDcaTask.wait();
+
+    const usdcBalanceAfterDCA = await USDC.balanceOf(signer.address);
+    const usdcBalanceAfterFormattedDCA = Number(
+      hre.ethers.formatUnits(usdcBalanceAfterDCA, USDC_DECIMALS)
+    );
+
+    // Validate DCA task executed successfully
+    expect(usdcBalanceBeforeDCA).is.greaterThan(usdcBalanceAfterDCA);
+
+    // Check WETH balance
+    const WETHbalanceAfterDCA = await WETH.balanceOf(signer.address);
+    const WETHbalanceAfterDCAFormatted = Number(
+      hre.ethers.formatUnits(WETHbalanceAfterDCA, DAI_DECIMALS)
+    );
+
+    // Check DAI balance
+
+    const DAIBalanceAfterDCA = await DAI.balanceOf(signer.address);
+    const DAIBalanceAfterDCAFormatted = Number(
+      hre.ethers.formatUnits(DAIBalanceAfterDCA, DAI_DECIMALS)
+    );
+
+    // Validate DCA task executed successfully
+    expect(DAIBalanceAfterDCA).is.greaterThan(DAIBalanceBeforeDCA);
+    expect(WETHbalanceAfterDCA).is.greaterThan(WETHbalanceBeforeDCA);
+
+    console.log(
+      `*AC WETH before: ${WETHbalanceBeforeDCA}, WETH after: ${WETHbalanceAfterDCA}, diff: ${
+        WETHbalanceAfterDCA - WETHbalanceBeforeDCA
+      }`
+    );
+
+    console.log(
+      `*AC DAI before: ${DAIBalanceBeforeDCA}, DAI after: ${DAIBalanceAfterDCA}, diff: ${
+        DAIBalanceAfterDCA - DAIBalanceBeforeDCA
+      }`
+    );
+
+    console.log(
+      `*AC USDC before: ${usdcBalanceAfterDCA}, USDC after: ${usdcBalanceBeforeDCA}, diff: ${
+        usdcBalanceAfterDCA - usdcBalanceBeforeDCA
+      }`
+    );
+
+    // fetch chainlink price from getChainlinkDataFeedLatestAnswer function in magicDCA contract
+    // const chainlinkPrice = await magicDCA.getFormattedPrice(WETH_ADDRESS, 100);
+    // console.log("Chainlink price: ", chainlinkPrice);
   });
 });
