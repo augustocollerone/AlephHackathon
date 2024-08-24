@@ -12,16 +12,13 @@ struct DcaTask {
     uint256 count;
     uint256 maxCount;
     address feeToken;
-    bytes32 gelatoTaskId; // Store the Gelato task ID directly in the task
+    bytes32 gelatoTaskId;
 }
 
 contract MagicDCA is AutomateTaskCreator {
     mapping(address => DcaTask[]) public dcaTasks;
 
-    uint128 public constant INTERVAL = 3 minutes;
-
     event DcaTaskCreated(address indexed user, uint256 taskId, string name);
-    event DcaTaskUpdated(address indexed user, uint256 taskId, string name);
     event DcaTaskDeleted(address indexed user, uint256 taskId);
     event DcaTaskExecuted(
         address indexed user,
@@ -42,7 +39,15 @@ contract MagicDCA is AutomateTaskCreator {
         address _feeToken
     ) external {
         // Generate a random ID based on the block timestamp, the user's address, and the current task length
-        uint256 taskId = 1234567890; // TODO: Generate a random ID
+        uint256 taskId = uint256(
+            keccak256(
+                abi.encodePacked(
+                    block.timestamp,
+                    msg.sender,
+                    dcaTasks[msg.sender].length
+                )
+            )
+        );
 
         DcaTask memory newTask = DcaTask({
             id: taskId,
@@ -75,10 +80,10 @@ contract MagicDCA is AutomateTaskCreator {
         moduleData.args[1] = _timeTriggerModuleArg(
             uint128(block.timestamp),
             _interval
-        ); // Corresponding to TRIGGER
+        );
 
         bytes32 gelatoTaskId = _createTask(
-            dedicatedMsgSender,
+            address(this),
             execData,
             moduleData,
             newTask.feeToken

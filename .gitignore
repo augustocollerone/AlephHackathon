@@ -19,3 +19,4 @@ ignition/deployments/chain-31337
 /src/contracts/cache
 /src/contracts/artifacts
 /src/contracts/typechain-types
+/src/contracts/ignition/deployments/chain-11155111

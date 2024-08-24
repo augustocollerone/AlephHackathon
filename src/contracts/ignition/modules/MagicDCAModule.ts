@@ -6,15 +6,18 @@ const MagicDCAModule = buildModule("MagicDCAModule", (m) => {
     id: "testMagicDCA1",
   });
 
-  const task = m.call(testMagicDCA1, "createTask", []);
-
   const newDca = {
     name: "test",
     amount: 100,
-    interval: 300000,
+    interval: 100000,
     maxCount: 10,
-    feeToken: "0x0000000000000000000000000000000000000000",
+    feeToken: "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
   };
+
+  // Fund contract
+  m.call(testMagicDCA1, "receive", [], {
+    value: 3_000_000_000_000_000n, // 1gwei
+  });
 
   const dcaTask = m.call(testMagicDCA1, "createDcaTask", [
     newDca.name,
