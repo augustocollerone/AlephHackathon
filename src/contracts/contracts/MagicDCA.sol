@@ -28,16 +28,20 @@ contract MagicDCA is AutomateTaskCreator {
     mapping(address => mapping(uint256 => DcaTask)) public dcaTasks;
     mapping(address => uint256[]) public userTaskIds;
 
-    address public constant UNISWAP_V3_ROUTER =
-        0xE592427A0AEce92De3Edee1F18E0157C05861564; // Mainnet address
+    ISwapRouter public immutable swapRouter;
+
     address public constant USDC = 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48; // Mainnet address
-    ISwapRouter public immutable swapRouter = ISwapRouter(UNISWAP_V3_ROUTER);
 
     event DcaTaskCreated(address indexed user, uint256 taskId, string name);
     event DcaTaskDeleted(address indexed user, uint256 taskId);
     event DcaTaskExecuted(address indexed user, uint256 taskId);
 
-    constructor(address payable _automate) AutomateTaskCreator(_automate) {}
+    constructor(
+        address payable _automate,
+        ISwapRouter _swapRouter
+    ) AutomateTaskCreator(_automate) {
+        swapRouter = _swapRouter;
+    }
 
     function createDcaTask(
         string memory _name,
@@ -63,21 +67,24 @@ contract MagicDCA is AutomateTaskCreator {
             keccak256(abi.encodePacked(block.timestamp, msg.sender))
         );
 
-        DcaTask memory newTask = DcaTask({
-            id: taskId,
-            name: _name,
-            amount: _amount,
-            interval: _interval,
-            count: 0,
-            maxCount: _maxCount,
-            feeToken: _feeToken,
-            gelatoTaskId: bytes32(0), // Initialize as empty, will set after creating Gelato task
-            outputSwaps: _outputSwaps,
-            created: block.timestamp,
-            lastExecuted: block.timestamp
-        });
+        // Create a new task
+        DcaTask storage newTask = dcaTasks[msg.sender][taskId];
+        newTask.id = taskId;
+        newTask.name = _name;
+        newTask.amount = _amount;
+        newTask.interval = _interval;
+        newTask.count = 0;
+        newTask.maxCount = _maxCount;
+        newTask.feeToken = _feeToken;
+        newTask.gelatoTaskId = bytes32(0); // Initialize as empty, will set after creating Gelato task
+        newTask.created = block.timestamp;
+        newTask.lastExecuted = block.timestamp;
 
-        dcaTasks[msg.sender][taskId] = newTask;
+        // Copy the outputSwaps array
+        for (uint256 i = 0; i < _outputSwaps.length; i++) {
+            newTask.outputSwaps.push(_outputSwaps[i]);
+        }
+
         userTaskIds[msg.sender].push(taskId);
 
         bytes memory execData = abi.encodeCall(
@@ -107,7 +114,7 @@ contract MagicDCA is AutomateTaskCreator {
         );
 
         // Update the Gelato task ID in the new task
-        dcaTasks[msg.sender][taskId].gelatoTaskId = gelatoTaskId;
+        newTask.gelatoTaskId = gelatoTaskId;
 
         emit DcaTaskCreated(msg.sender, taskId, _name);
     }
