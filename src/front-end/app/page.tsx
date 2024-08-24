@@ -5,32 +5,62 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Coins } from "lucide-react"
+import { Coins, Loader2 } from "lucide-react"
 import TimeFrameSelector, { TimeFrame } from "@/components/ui/timeframe-selector"
 import { CustomConnectButton } from "@/components/ui/wallet-connect-button"
-
-interface Schedule {
-  id: number;
-  amount: string;
-  asset: string;
-  timeFrame: string;
-}
+import { useCreateSchedule } from "@/hooks/useCreateSchedule"
+import { useAccount } from 'wagmi'
+import { ReloadIcon } from "@radix-ui/react-icons"
 
 export default function Home() {
   const [amount, setAmount] = useState("")
   const [timeFrame, setTimeFrame] = useState<TimeFrame>(TimeFrame.DAILY)
+  const [isLoading, setIsLoading] = useState(false)
+  const { createSchedule } = useCreateSchedule()
+  const { isConnected } = useAccount()
 
-  const handleCreateSchedule = () => {
+  const handleCreateSchedule = async () => {
+    if (!isConnected) {
+      console.log("Please connect your wallet first")
+      return
+    }
+
     if (amount && timeFrame) {
-      const newSchedule: Schedule = {
-        id: Date.now(),
-        amount,
-        asset: "0x0",
-        timeFrame,
+      setIsLoading(true)
+      try {
+        console.log("Attempting to create schedule...")
+        const amountInWei = BigInt(Math.floor(parseFloat(amount) * 1e18)) // Convert to Wei
+        const intervalInMilliseconds = timeFrameToMilliseconds(timeFrame)
+        console.log("Amount in Wei:", amountInWei.toString())
+        console.log("Interval in milliseconds:", intervalInMilliseconds)
+        
+        await createSchedule(
+          "Test DCA Schedule", // name
+          amountInWei, // amount
+          intervalInMilliseconds, // interval
+          100, // maxCount (arbitrary value, adjust as needed)
+          '0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238' // feeToken (using the address from the hook)
+        )
+        console.log("Schedule creation initiated")
+
+        setAmount("")
+        setTimeFrame(TimeFrame.DAILY)
+      } catch (error) {
+        console.error("Failed to create DCA schedule:", error)
+      } finally {
+        setIsLoading(false)
       }
-      // TODO: Call smart contract to create schedule
-      setAmount("")
-      setTimeFrame(TimeFrame.DAILY)
+    } else {
+      console.log("Please fill in all fields")
+    }
+  }
+
+  const timeFrameToMilliseconds = (tf: TimeFrame): number => {
+    switch (tf) {
+      case TimeFrame.DAILY: return 86400000 // 24 * 60 * 60 * 1000
+      case TimeFrame.WEEKLY: return 604800000 // 7 * 24 * 60 * 60 * 1000
+      case TimeFrame.MONTHLY: return 2592000000 // 30 * 24 * 60 * 60 * 1000
+      default: return 86400000 // Default to daily
     }
   }
 
@@ -70,9 +100,20 @@ export default function Home() {
             </div>
           </CardContent>
           <CardFooter>
-            <Button onClick={handleCreateSchedule} className="w-full">
-              Create DCA Schedule
-            </Button>
+
+            {isLoading ? (
+              <>
+                <Button className="w-full" disabled>
+                  <ReloadIcon className="mr-2 h-4 w-4 animate-spin" />
+                  Please wait
+                </Button>
+              </>
+            ) : (
+              <Button onClick={handleCreateSchedule} className="w-full" disabled={isLoading}>
+                Create DCA Schedule
+              </Button>
+            )}
+            
           </CardFooter>
         </Card>
       </div>
