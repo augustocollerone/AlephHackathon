@@ -14,6 +14,7 @@ const UNI_ADDRESS = "0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984";
 
 const WETH_PRICE_FEED = "0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419";
 const DAI_PRICE_FEED = "0xAed0c38402a5d19df6E4c03F4E2DceD6e29c1ee9";
+const UNI_PRICE_FEED = "0x553303d460EE0afB37EdFf9bE42922D8FF63220e";
 
 const DAI_DECIMALS = 18;
 const USDC_DECIMALS = 6;
@@ -134,6 +135,7 @@ describe("MagicDCA", function () {
     const USDC = new hre.ethers.Contract(USDC_ADDRESS, ercAbi, signer);
     const WETH = new hre.ethers.Contract(WETH_ADDRESS, ercAbi, signer);
     const DAI = new hre.ethers.Contract(DAI_ADDRESS, ercAbi, signer);
+    const UNI = new hre.ethers.Contract(UNI_ADDRESS, ercAbi, signer);
 
     const usdcBalanceBeforeDCA = await USDC.balanceOf(signer.address);
     const usdcBalanceBeforeFormatted = Number(
@@ -143,6 +145,7 @@ describe("MagicDCA", function () {
 
     const WETHbalanceBeforeDCA = await WETH.balanceOf(signer.address);
     const DAIBalanceBeforeDCA = await DAI.balanceOf(signer.address);
+    const UNIBalanceBeforeDCA = await UNI.balanceOf(signer.address);
 
     const magicDCAFactory = await hre.ethers.getContractFactory("MagicDCA");
     const magicDCA = await magicDCAFactory.deploy(
@@ -163,7 +166,8 @@ describe("MagicDCA", function () {
       feeToken: "0x7b79995e5f793A07Bc00c21412e50Ecae098E7f9",
       outputSwaps: [
         { token: WETH_ADDRESS, percentage: 50 },
-        { token: DAI_ADDRESS, percentage: 50 },
+        { token: DAI_ADDRESS, percentage: 20 },
+        { token: UNI_ADDRESS, percentage: 30 },
       ],
     };
 
@@ -186,11 +190,11 @@ describe("MagicDCA", function () {
     approveTx.wait();
 
     // Approve contract to use WETH
-    const approveWETHTx = await WETH.approve(
-      magicDCAAddress,
-      hre.ethers.parseEther("0.2")
-    );
-    await approveWETHTx.wait();
+    // const approveWETHTx = await WETH.approve(
+    //   magicDCAAddress,
+    //   hre.ethers.parseEther("0.2")
+    // );
+    // await approveWETHTx.wait();
 
     // Set price feed oracleFor WETH and DAI
 
@@ -204,8 +208,13 @@ describe("MagicDCA", function () {
       DAI_PRICE_FEED
     );
 
+    const UNIpriceFeedOracle = await magicDCA.setOracle(
+      UNI_ADDRESS,
+      UNI_PRICE_FEED
+    );
+
     // Execute DCA task
-    const executeDcaTask = await magicDCA.executeDcaTask2(
+    const executeDcaTask = await magicDCA.executeDcaTask(
       signer.address,
       dcaTaskId
     );
@@ -227,15 +236,21 @@ describe("MagicDCA", function () {
     );
 
     // Check DAI balance
-
     const DAIBalanceAfterDCA = await DAI.balanceOf(signer.address);
     const DAIBalanceAfterDCAFormatted = Number(
       hre.ethers.formatUnits(DAIBalanceAfterDCA, DAI_DECIMALS)
     );
 
+    // Check UNI balance
+    const UNIBalanceAfterDCA = await UNI.balanceOf(signer.address);
+    const UNIBalanceAfterDCAFormatted = Number(
+      hre.ethers.formatUnits(UNIBalanceAfterDCA, DAI_DECIMALS)
+    );
+
     // Validate DCA task executed successfully
     expect(DAIBalanceAfterDCA).is.greaterThan(DAIBalanceBeforeDCA);
     expect(WETHbalanceAfterDCA).is.greaterThan(WETHbalanceBeforeDCA);
+    expect(UNIBalanceAfterDCA).is.greaterThan(UNIBalanceBeforeDCA);
 
     console.log(
       `*AC WETH before: ${WETHbalanceBeforeDCA}, WETH after: ${WETHbalanceAfterDCA}, diff: ${
@@ -246,6 +261,12 @@ describe("MagicDCA", function () {
     console.log(
       `*AC DAI before: ${DAIBalanceBeforeDCA}, DAI after: ${DAIBalanceAfterDCA}, diff: ${
         DAIBalanceAfterDCA - DAIBalanceBeforeDCA
+      }`
+    );
+
+    console.log(
+      `*AC UNI before: ${UNIBalanceBeforeDCA}, UNI after: ${UNIBalanceAfterDCA}, diff: ${
+        UNIBalanceAfterDCA - UNIBalanceBeforeDCA
       }`
     );
 
