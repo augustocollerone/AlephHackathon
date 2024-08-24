@@ -3,16 +3,23 @@ pragma solidity ^0.8.24;
 
 import "./integrations/AutomateTaskCreator.sol";
 
+struct OutputSwap {
+    address token;
+    uint8 percentage;
+}
+
 struct DcaTask {
     uint256 id;
     string name;
     uint256 amount;
     uint128 interval;
-    uint256 lastExecuted;
     uint256 count;
     uint256 maxCount;
     address feeToken;
     bytes32 gelatoTaskId;
+    OutputSwap[] outputSwaps;
+    uint256 created;
+    uint256 lastExecuted;
 }
 
 contract MagicDCA is AutomateTaskCreator {
@@ -32,8 +39,20 @@ contract MagicDCA is AutomateTaskCreator {
         uint256 _amount,
         uint128 _interval,
         uint256 _maxCount,
-        address _feeToken
+        address _feeToken,
+        OutputSwap[] memory _outputSwaps
     ) external {
+        uint256 totalPercentage = 0;
+        for (uint256 i = 0; i < _outputSwaps.length; i++) {
+            require(
+                _outputSwaps[i].percentage > 0 &&
+                    _outputSwaps[i].percentage <= 100,
+                "Percentage must be between 1 and 100"
+            );
+            totalPercentage += _outputSwaps[i].percentage;
+        }
+        require(totalPercentage == 100, "Total percentage must be 100");
+
         // Generate a random ID based on the block timestamp and the user's address
         uint256 taskId = uint256(
             keccak256(abi.encodePacked(block.timestamp, msg.sender))
@@ -44,11 +63,13 @@ contract MagicDCA is AutomateTaskCreator {
             name: _name,
             amount: _amount,
             interval: _interval,
-            lastExecuted: block.timestamp,
             count: 0,
             maxCount: _maxCount,
             feeToken: _feeToken,
-            gelatoTaskId: bytes32(0) // Initialize as empty, will set after creating Gelato task
+            gelatoTaskId: bytes32(0), // Initialize as empty, will set after creating Gelato task
+            outputSwaps: _outputSwaps
+            created: block.timestamp,
+            lastExecuted: block.timestamp,
         });
 
         dcaTasks[msg.sender][taskId] = newTask;
