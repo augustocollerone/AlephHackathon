@@ -17,6 +17,7 @@ struct DcaTask {
 
 contract MagicDCA is AutomateTaskCreator {
     mapping(address => mapping(uint256 => DcaTask)) public dcaTasks;
+    mapping(address => uint256[]) public userTaskIds;
 
     event DcaTaskCreated(address indexed user, uint256 taskId, string name);
     event DcaTaskDeleted(address indexed user, uint256 taskId);
@@ -51,6 +52,7 @@ contract MagicDCA is AutomateTaskCreator {
         });
 
         dcaTasks[msg.sender][taskId] = newTask;
+        userTaskIds[msg.sender].push(taskId);
 
         bytes memory execData = abi.encodeCall(
             this.executeDcaTask,
@@ -88,11 +90,27 @@ contract MagicDCA is AutomateTaskCreator {
         // TODO: Check this require
         require(dcaTasks[msg.sender][_taskId].id != 0, "Task does not exist");
         delete dcaTasks[msg.sender][_taskId];
+
+        // Remove the task ID from the user's task ID array
+        uint256[] storage taskIds = userTaskIds[msg.sender];
+        for (uint256 i = 0; i < taskIds.length; i++) {
+            if (taskIds[i] == _taskId) {
+                taskIds[i] = taskIds[taskIds.length - 1];
+                taskIds.pop();
+                break;
+            }
+        }
+
         emit DcaTaskDeleted(msg.sender, _taskId);
     }
 
     function getDcaTasks() external view returns (DcaTask[] memory) {
-        return dcaTasks[msg.sender];
+        uint256[] storage taskIds = userTaskIds[msg.sender];
+        DcaTask[] memory tasks = new DcaTask[](taskIds.length);
+        for (uint256 i = 0; i < taskIds.length; i++) {
+            tasks[i] = dcaTasks[msg.sender][taskIds[i]];
+        }
+        return tasks;
     }
 
     function executeDcaTask(
