@@ -1,10 +1,10 @@
 import { Button } from "./button"
 
 export enum TimeFrame {
-  DAILY = "daily",
-  WEEKLY = "weekly",
-  BIWEEKLY = "biweekly",
-  MONTHLY = "monthly",
+  DAILY = "Daily",
+  WEEKLY = "Weekly",
+  BIWEEKLY = "Bi-weekly",
+  MONTHLY = "Monthly",
 }
 
 const TimeFrameSelector = ({ value, onChange }: { value: TimeFrame; onChange: (value: TimeFrame) => void }) => {
