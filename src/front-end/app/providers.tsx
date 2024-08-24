@@ -16,6 +16,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
       <QueryClientProvider client={queryClient}>
         <RainbowKitProvider
           modalSize='compact'
+          coolMode={false}
           theme={{
             lightMode: lightTheme(),
             darkMode: darkTheme(),

@@ -40,59 +40,57 @@ export function CustomConnectButton() {
             {(() => {
               if (!connected) {
                 return (
-                  <Button onClick={openConnectModal} type="button">
-                    <WalletIcon className="mr-2 h-4 w-4" />
-                    Connect
+                  <Button onClick={openConnectModal} type="button" className="w-auto">
+                    <WalletIcon className="h-4 w-4" />
+                    <span className="hidden sm:inline-block sm:ml-2">Connect</span>
                   </Button>
                 );
               }
 
               if (chain.unsupported) {
                 return (
-                  <Button onClick={openChainModal} type="button" variant="destructive">
-                    <Loader2Icon className="mr-2 h-4 w-4 animate-spin" />
-                    Wrong network
+                  <Button onClick={openChainModal} type="button" variant="destructive" className="w-auto">
+                    <Loader2Icon className="h-4 w-4 animate-spin" />
+                    <span className="hidden sm:inline-block sm:ml-2">Wrong network</span>
                   </Button>
                 );
               }
 
               return (
-                <div style={{ display: 'flex', gap: 12 }}>
+                <div className="flex gap-2">
                   <Button
                     onClick={openChainModal}
                     type="button"
                     variant="outline"
+                    className="w-auto p-2 sm:p-3"
                   >
                     {chain.hasIcon && (
                       <div
+                        className="w-3 h-3 rounded-full overflow-hidden"
                         style={{
                           background: chain.iconBackground,
-                          width: 12,
-                          height: 12,
-                          borderRadius: 999,
-                          overflow: 'hidden',
-                          marginRight: 4,
                         }}
                       >
                         {chain.iconUrl && (
                           <img
                             alt={chain.name ?? 'Chain icon'}
                             src={chain.iconUrl}
-                            style={{ width: 12, height: 12 }}
+                            className="w-3 h-3"
                           />
                         )}
                       </div>
                     )}
-                    {chain.name}
-                    <ChevronDownIcon className="ml-2 h-4 w-4" />
+                    <span className="hidden sm:inline-block sm:ml-2">{chain.name}</span>
                   </Button>
 
-                  <Button onClick={openAccountModal} type="button">
-                    {account.displayName}
-                    {account.displayBalance
-                      ? ` (${account.displayBalance})`
-                      : ''}
-                    <ChevronDownIcon className="ml-2 h-4 w-4" />
+                  <Button onClick={openAccountModal} type="button" className="w-auto p-2 sm:p-3">
+                    <span className="hidden sm:inline-block">
+                      {account.displayName}
+                      {account.displayBalance
+                        ? ` (${account.displayBalance})`
+                        : ''}
+                    </span>
+                    <ChevronDownIcon className="h-4 w-4 sm:ml-2" />
                   </Button>
                 </div>
               );

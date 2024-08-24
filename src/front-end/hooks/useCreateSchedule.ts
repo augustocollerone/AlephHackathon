@@ -1,18 +1,19 @@
 import { useWriteContract } from 'wagmi'
 import deployedContracts from '../contracts/deployedContracts'
+import { useState } from 'react'
 
 export function useCreateSchedule() {
-  const { writeContractAsync } = useWriteContract();
+  const { writeContractAsync, isError, error } = useWriteContract();
+  const [isSuccess, setIsSuccess] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   const createSchedule = async (
     name: string,
-    amount: bigint,
+    amount: number,
     interval: number,
     maxCount: number,
-    feeToken: string
   ) => {
-
-    console.log("Creating schedule");
+    setIsLoading(true);
     try {
       const { address, abi } = deployedContracts.DCAScheduler;
       
@@ -22,17 +23,26 @@ export function useCreateSchedule() {
         functionName: 'createDcaTask',
         args: [
           name,
-          amount,
+          BigInt(amount),
           BigInt(interval),
           BigInt(maxCount),
           '0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238' // USDC
         ],
       });
+      setIsSuccess(true);
     } catch (error) {
-      console.error('Error creating DCA schedule:', error);
-      throw error;
+      console.error("Failed to create schedule:", error);
+      setIsSuccess(false);
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  return { createSchedule };
+  return { 
+    createSchedule, 
+    isError, 
+    error, 
+    isSuccess,
+    isLoading
+  };
 }
