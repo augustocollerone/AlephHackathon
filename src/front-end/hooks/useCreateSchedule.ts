@@ -23,7 +23,7 @@ export function useCreateSchedule() {
         functionName: 'createDcaTask',
         args: [
           name,
-          BigInt(amount),
+          BigInt(Math.floor(amount * 1e6)), // Convert to USDC with 6 decimal places
           BigInt(interval),
           BigInt(maxCount),
           '0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238' // USDC

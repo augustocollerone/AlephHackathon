@@ -1,4 +1,4 @@
-import { TimeFrame } from "@/components/ui/timeframe-selector"
+import { TimeFrame } from "../components/ui/timeframe-selector"
 
 export const timeFrameToMilliseconds = (tf: TimeFrame): number => {
   switch (tf) {

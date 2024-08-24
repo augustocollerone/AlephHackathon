@@ -16,15 +16,20 @@ const TimeFrameSelector = ({ value, onChange }: { value: TimeFrame; onChange: (v
   ]
 
   return (
-    <div className="flex flex-wrap gap-2">
+    <div className="grid grid-cols-2 md:flex md:flex-wrap gap-2">
       {timeFrames.map((frame) => (
         <Button
           key={frame.value}
           variant={value === frame.value ? "default" : "outline"}
-          className="flex-1 min-w-[calc(50%-0.25rem)] sm:min-w-0"
+          className="w-full md:flex-1 px-2 sm:px-4 text-xs sm:text-sm"
           onClick={() => onChange(frame.value)}
         >
-          {frame.label}
+          {frame.value === TimeFrame.BIWEEKLY ? (
+            <span className="md:hidden">Bi-week</span>
+          ) : (
+            <span className="md:hidden">{frame.label}</span>
+          )}
+          <span className="hidden md:inline">{frame.label}</span>
         </Button>
       ))}
     </div>
