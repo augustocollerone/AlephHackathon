@@ -16,16 +16,11 @@ struct DcaTask {
 }
 
 contract MagicDCA is AutomateTaskCreator {
-    mapping(address => DcaTask[]) public dcaTasks;
+    mapping(address => mapping(uint256 => DcaTask)) public dcaTasks;
 
     event DcaTaskCreated(address indexed user, uint256 taskId, string name);
     event DcaTaskDeleted(address indexed user, uint256 taskId);
-    event DcaTaskExecuted(
-        address indexed user,
-        uint256 taskId,
-        uint256 amount,
-        address feeToken
-    );
+    event DcaTaskExecuted(address indexed user, uint256 taskId);
 
     constructor(address payable _automate) AutomateTaskCreator(_automate) {}
 
@@ -38,15 +33,9 @@ contract MagicDCA is AutomateTaskCreator {
         uint256 _maxCount,
         address _feeToken
     ) external {
-        // Generate a random ID based on the block timestamp, the user's address, and the current task length
+        // Generate a random ID based on the block timestamp and the user's address
         uint256 taskId = uint256(
-            keccak256(
-                abi.encodePacked(
-                    block.timestamp,
-                    msg.sender,
-                    dcaTasks[msg.sender].length
-                )
-            )
+            keccak256(abi.encodePacked(block.timestamp, msg.sender))
         );
 
         DcaTask memory newTask = DcaTask({
@@ -61,11 +50,11 @@ contract MagicDCA is AutomateTaskCreator {
             gelatoTaskId: bytes32(0) // Initialize as empty, will set after creating Gelato task
         });
 
-        dcaTasks[msg.sender].push(newTask);
+        dcaTasks[msg.sender][taskId] = newTask;
 
         bytes memory execData = abi.encodeCall(
             this.executeDcaTask,
-            (newTask.id)
+            (msg.sender, newTask.id)
         );
 
         ModuleData memory moduleData = ModuleData({
@@ -90,32 +79,35 @@ contract MagicDCA is AutomateTaskCreator {
         );
 
         // Update the Gelato task ID in the new task
-        dcaTasks[msg.sender][dcaTasks[msg.sender].length - 1]
-            .gelatoTaskId = gelatoTaskId;
+        dcaTasks[msg.sender][taskId].gelatoTaskId = gelatoTaskId;
 
         emit DcaTaskCreated(msg.sender, taskId, _name);
     }
 
-    function deleteDcaTask(uint256 _taskId) external {}
+    function deleteDcaTask(uint256 _taskId) external {
+        // TODO: Check this require
+        require(dcaTasks[msg.sender][_taskId].id != 0, "Task does not exist");
+        delete dcaTasks[msg.sender][_taskId];
+        emit DcaTaskDeleted(msg.sender, _taskId);
+    }
 
     function getDcaTasks() external view returns (DcaTask[] memory) {
         return dcaTasks[msg.sender];
     }
 
-    function executeDcaTask(uint256 _id) external onlyDedicatedMsgSender {
-        // uint256 newCount = count + _amount;
-        // if (newCount >= MAX_COUNT) {
-        //     _cancelTask(taskId);
-        //     count = 0;
-        // } else {
-        //     count += _amount;
-        //     lastExecuted = block.timestamp;
-        // }
+    function executeDcaTask(
+        address owner,
+        uint256 _id
+    ) external onlyDedicatedMsgSender {
+        // Fetch the task
+        DcaTask storage task = dcaTasks[owner][_id];
+
+        // TODO: Check this require
+        require(task.id != 0, "Task does not exist");
 
         (uint256 fee, address feeToken) = _getFeeDetails();
-
         _transfer(fee, feeToken);
 
-        emit DcaTaskExecuted(msg.sender, _id, fee, feeToken);
+        emit DcaTaskExecuted(owner, _id);
     }
 }
