@@ -223,7 +223,7 @@ contract MagicDCA is AutomateTaskCreator {
             _cancelTask(task.gelatoTaskId);
         }
 
-        // 1. Move USDC from user wallet to this contract
+        // Move USDC from user wallet to this contract
         TransferHelper.safeTransferFrom(
             USDC,
             owner,
@@ -231,26 +231,26 @@ contract MagicDCA is AutomateTaskCreator {
             task.amount
         );
 
-        // 2. Calculate gelato fee
+        // Calculate gelato fee
         (uint256 taskFee, address taskFeeToken) = _getFeeDetails();
 
-        // TODO: Check if fee token is USDC, if not, convert to USDC
+        // Check if fee token is USDC, if not, convert to USDC
         uint256 amountAfterFee = task.amount - taskFee;
 
-        // 3. Approve USDC from this contract to Swap router - minus gelato fee
         TransferHelper.safeApprove(USDC, address(swapRouter), amountAfterFee);
+        // Approve USDC from this contract to Swap router - minus gelato fee
 
         // Create performed swaps array
         PerformedSwap[] memory performedSwaps = new PerformedSwap[](
             task.outputSwaps.length
         );
 
-        // 4. Loop through output swaps
+        // Loop through output swaps
         for (uint256 i = 0; i < task.outputSwaps.length; i++) {
             OutputSwap memory outputSwap = task.outputSwaps[i];
             uint256 amountIn = (amountAfterFee * outputSwap.percentage) / 100;
 
-            // 4.a: Fetch price from oracle
+            // Fetch price from oracle
             (int price, uint8 decimals) = getLatestPrice(outputSwap.token);
             int minOutput = (int(amountIn) * price) / int(10 ** decimals);
 
@@ -267,7 +267,7 @@ contract MagicDCA is AutomateTaskCreator {
                     sqrtPriceLimitX96: 0
                 });
 
-            // 4.c: Execute the swap
+            // Execute the swap
             uint256 amountOut = swapRouter.exactInputSingle(params);
 
             // Update the performed swaps array

@@ -117,7 +117,7 @@ describe("MagicDCA", function () {
     await approveTx.wait();
 
     const amountIn = hre.ethers.parseEther("0.2");
-    const swapTx = await simpleSwap.swapWETHForDAI(amountIn, {
+    const swapTx = await simpleSwap.swapWETHForUSDC(amountIn, {
       gasLimit: 300000,
     });
     await swapTx.wait();
@@ -163,7 +163,7 @@ describe("MagicDCA", function () {
     // Create DCA tasks
     const newDca = {
       name: "test",
-      amount: 50,
+      amount: usdcBalanceBeforeDCA,
       interval: 100000,
       maxCount: 10,
       outputSwaps: [
@@ -187,7 +187,7 @@ describe("MagicDCA", function () {
     console.log("DCA task created: ", dcaTaskId);
 
     // Aprove contract to use USDC
-    const approveTx = await USDC.approve(magicDCAAddress, 100);
+    const approveTx = await USDC.approve(magicDCAAddress, usdcBalanceBeforeDCA);
     approveTx.wait();
 
     // Approve contract to use WETH
@@ -282,13 +282,30 @@ describe("MagicDCA", function () {
     );
 
     console.log(
-      `*AC USDC before: ${usdcBalanceAfterDCA}, USDC after: ${usdcBalanceBeforeDCA}, diff: ${
+      `*AC USDC before: ${usdcBalanceBeforeDCA}, USDC after: ${usdcBalanceAfterDCA}, diff: ${
         usdcBalanceAfterDCA - usdcBalanceBeforeDCA
       }`
     );
 
-    // fetch chainlink price from getChainlinkDataFeedLatestAnswer function in magicDCA contract
-    // const chainlinkPrice = await magicDCA.getFormattedPrice(WETH_ADDRESS, 100);
-    // console.log("Chainlink price: ", chainlinkPrice);
+    function findEventArgs(logs, eventName) {
+      let _event = null;
+
+      for (const event of logs) {
+        if (event.fragment && event.fragment.name === eventName) {
+          _event = event.args;
+        }
+      }
+      return _event;
+    }
+
+    const event = findEventArgs(result?.logs, "DcaTaskExecuted");
+    // Loop through logs and find DcaTaskExecuted event. Match the addreses with DAI, WETH and UNI. Validate the percentages and console log the exact exchange rates
+    event[2].forEach((swap) => {
+      console.log("TokenIn: ", swap.tokenIn);
+      console.log("TokenOut: ", swap.tokenOut);
+      console.log("AmountIn: ", swap.amountIn);
+      console.log("AmountOut: ", swap.amountOut);
+      console.log("Exchange Rate: ", swap.tokenIn / swap.tokenOut);
+    });
   });
 });

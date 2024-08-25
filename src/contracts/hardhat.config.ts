@@ -27,6 +27,10 @@ const config: HardhatUserConfig = {
       //   interval: 1000,
       // },
     },
+    arbitrum: {
+      url: `https://arb-mainnet.g.alchemy.com/v2/${providerApiKey}`,
+      accounts: [deployerPrivateKey],
+    },
     sepolia: {
       url: `https://eth-sepolia.g.alchemy.com/v2/${providerApiKey}`,
       accounts: [deployerPrivateKey],

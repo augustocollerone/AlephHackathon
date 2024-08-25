@@ -7,24 +7,25 @@ const USDC_ADDRESS = "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238";
 const WETH_PRICE_FEED = "0x694AA1769357215DE4FAC081bf1f309aDC325306";
 const DAI_PRICE_FEED = "0x14866185B1962B63C3Ea9E03Bc1da838bab34C19";
 
-const GELATOAUTOMATE = "0x2A6C106ae13B558BB9E2Ec64Bd2f1f7BEFF3A5E0";
+const GELATO_AUTOMATE = "0x2A6C106ae13B558BB9E2Ec64Bd2f1f7BEFF3A5E0";
 const UNISWAP_ROUTER = "0xb41b78Ce3D1BDEDE48A3d303eD2564F6d1F6fff0";
+
+const FEE_TOKEN = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE";
 
 const MagicDCAModule = buildModule("MagicDCAModule", (m) => {
   const testMagicDCA1 = m.contract(
     "MagicDCA",
-    [GELATOAUTOMATE, UNISWAP_ROUTER],
+    [GELATO_AUTOMATE, UNISWAP_ROUTER, FEE_TOKEN],
     {
       id: "testMagicDCA1",
     }
   );
 
   const newDca = {
-    name: "test",
+    name: "Module Test DCA",
     amount: 5,
-    interval: 100000,
+    interval: 60000,
     maxCount: 10,
-    feeToken: "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
     outputSwaps: [
       { token: WETH_ADDRESS, percentage: 50 },
       { token: DAI_ADDRESS, percentage: 50 },
@@ -48,7 +49,6 @@ const MagicDCAModule = buildModule("MagicDCAModule", (m) => {
     newDca.amount,
     newDca.interval,
     newDca.maxCount,
-    newDca.feeToken,
     newDca.outputSwaps,
   ]);
 
