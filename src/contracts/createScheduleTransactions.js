@@ -11,11 +11,12 @@ exports.handler = async function (payload) {
   };
   const client = new Defender(creds);
 
-  data.matchReasons.forEach(async (reason) => {
-    const { user, taskId, name, amount, interval } = reason.params;
-    console.log(reason.params);
-    // Inline code for the scheduled action
-    const codeToRun = `
+  if (data.matchReasons && Array.isArray(data.matchReasons)) {
+    for (const reason of data.matchReasons) {
+      const { user, taskId, name, amount, interval } = reason.params;
+      console.log(reason.params);
+      // Inline code for the scheduled action
+      const codeToRun = `
   const { Defender } = require('@openzeppelin/defender-sdk');
   const { ethers } = require('ethers');
 
@@ -35,26 +36,27 @@ exports.handler = async function (payload) {
   };
 `;
 
-    const myScheduledAction = {
-      name: `Scheduled-Action-For-Task`,
-      encodedZippedCode: Buffer.from(codeToRun).toString("base64"), // Encode the inline code
-      trigger: {
-        type: "schedule",
-        frequencyMinutes: 60, // Set the frequency as needed
-      },
-      paused: false,
-      environmentVariables: {
-        CONTRACT_ADDRESS: matchReasons.address,
-      },
-    };
+      const myScheduledAction = {
+        name: `Scheduled-Action-For-Task`,
+        encodedZippedCode: Buffer.from(codeToRun).toString("base64"), // Encode the inline code
+        trigger: {
+          type: "schedule",
+          frequencyMinutes: 60, // Set the frequency as needed
+        },
+        paused: false,
+        environmentVariables: {
+          CONTRACT_ADDRESS: reason.address,
+        },
+      };
 
-    try {
-      const createdAction = await client.createScheduledAction(
-        myScheduledAction
-      );
-      console.log(`Scheduled action created: ${createdAction.name}`);
-    } catch (error) {
-      console.log(`Error creating scheduled action: ${error}`);
+      try {
+        const createdAction = await client.action.create(myScheduledAction);
+        console.log(`Scheduled action created: ${createdAction.name}`);
+      } catch (error) {
+        console.log(`Error creating scheduled action: ${error}`);
+      }
     }
-  });
+  } else {
+    console.log("No matchReasons found in the payload.");
+  }
 };
