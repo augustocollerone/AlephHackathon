@@ -106,20 +106,22 @@ export function ScheduleDetails({ schedule, onBack }: { schedule: ScheduleDetail
           topics: log.topics,
         });
 
+        if ('swaps' in decodedLog.args) {
+          decodedLog.args.swaps.forEach((swap: any) => {
+            const tokenOut = swap.tokenOut.toLowerCase();
+            if (!acc[tokenOut]) {
+              acc[tokenOut] = [];
+            }
+
+            acc[tokenOut].push({
+              date,
+              amountSwapped: Number(swap.amountOut) / 1e18 // Assuming 18 decimals, adjust if needed
+            });
+          });
+        }
+
         const block = await publicClient.getBlock({ blockHash: log.blockHash });
         const date = new Date(Number(block.timestamp) * 1000).toISOString();
-
-        decodedLog.args.swaps.forEach((swap: any) => {
-          const tokenOut = swap.tokenOut.toLowerCase();
-          if (!acc[tokenOut]) {
-            acc[tokenOut] = [];
-          }
-
-          acc[tokenOut].push({
-            date,
-            amountSwapped: Number(swap.amountOut) / 1e18 // Assuming 18 decimals, adjust if needed
-          });
-        });
 
         return acc;
       }, Promise.resolve({} as Record<string, Array<{date: string, amountSwapped: number}>>));
@@ -206,21 +208,21 @@ export function ScheduleDetails({ schedule, onBack }: { schedule: ScheduleDetail
                       const totalAmount = Number(schedule.amount) / 1e6; // Assuming amount is in USDC (6 decimals)
                       return (
                         <text
-                          x={viewBox.cx}
-                          y={viewBox.cy}
+                          x={viewBox?.cx}
+                          y={viewBox?.cy}
                           textAnchor="middle"
                           dominantBaseline="middle"
                         >
                           <tspan
                             x={viewBox.cx}
-                            y={viewBox.cy - 10}
+                            y={viewBox?.cy ? viewBox.cy - 10 : 0}
                             className="fill-foreground text-2xl font-bold"
                           >
                             ${totalAmount.toFixed(2)}
                           </tspan>
                           <tspan
                             x={viewBox.cx}
-                            y={(viewBox.cy || 0) + 15}
+                            y={viewBox?.cy ? viewBox.cy + 15 : 0}
                             className="fill-muted-foreground text-sm"
                           >
                             USDC
@@ -228,6 +230,7 @@ export function ScheduleDetails({ schedule, onBack }: { schedule: ScheduleDetail
                         </text>
                       )
                     }
+                    return null;
                   }}
                 />
               </Pie>
