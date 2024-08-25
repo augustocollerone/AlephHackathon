@@ -109,6 +109,9 @@ contract MagicDCA is AutomateTaskCreator {
             totalPercentage += _outputSwaps[i].percentage;
         }
         require(totalPercentage == 100, "Total percentage must be 100");
+        require(_maxCount > 0, "Max count must be greater than 0");
+        require(_interval > 0, "Interval must be greater than 0");
+        require(_amount > 0, "Amount must be greater than 0");
 
         // Generate a random ID based on the block timestamp and the user's address
         uint256 taskId = uint256(
@@ -200,6 +203,17 @@ contract MagicDCA is AutomateTaskCreator {
 
         // Check if the task exists
         require(task.id != 0, "Task does not exist");
+
+        require(
+            IERC20(USDC).allowance(owner, address(this)) >= task.amount,
+            "Insufficient allowance for USDC"
+        );
+
+        // Check balance
+        require(
+            IERC20(USDC).balanceOf(owner) >= task.amount,
+            "Insufficient USDC balance"
+        );
 
         // Update the lastExecuted timestamp and count
         task.lastExecuted = block.timestamp;
