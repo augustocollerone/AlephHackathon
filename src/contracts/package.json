@@ -13,6 +13,11 @@
   },
   "scripts": {
     "compile": "npx hardhat compile",
-    "test": "npx hardhat test --network localhost"
+    "test": "npx hardhat test --network localhost",
+    "deploy:sepolia": "npx hardhat --network sepolia ignition deploy ignition/modules/MagicDCAModule.ts",
+    "deploy:arbitrum": "npx hardhat --network arbitrum ignition deploy ignition/modules/MagicDCAModule.ts",
+    "deploy:arbitrum2": "npx hardhat --network arbitrum ignition deploy ignition/modules/MagicDCAModule2.ts",
+    "verify:sepolia": " npx hardhat ignition verify chain-11155111 --include-unrelated-contracts",
+    "verify:arbitrum": " npx hardhat ignition verify chain-42161 --include-unrelated-contracts"
   }
 }

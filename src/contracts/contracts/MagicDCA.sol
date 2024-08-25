@@ -40,7 +40,7 @@ contract MagicDCA is AutomateTaskCreator {
 
     ISwapRouter public immutable swapRouter;
 
-    address public constant USDC = 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48; // Mainnet address
+    address public immutable USDC;
     address public immutable feeToken;
 
     // Mapping from token address to Chainlink oracle address
@@ -65,14 +65,13 @@ contract MagicDCA is AutomateTaskCreator {
     constructor(
         address payable _automate,
         ISwapRouter _swapRouter,
-        address _feeToken
+        address _feeToken,
+        address _usdc
     ) AutomateTaskCreator(_automate) {
         swapRouter = _swapRouter;
         feeToken = _feeToken;
+        USDC = _usdc;
     }
-
-    // TODO: Delete this
-    function receive() external payable {}
 
     function setOracle(address token, address oracle) public {
         // Set the oracle address for a specific token
@@ -194,10 +193,10 @@ contract MagicDCA is AutomateTaskCreator {
         return tasks;
     }
 
-    function executeDcaTask(address owner, uint256 _id) external {
-        // TODO: Uncomment this
-        // ) external onlyDedicatedMsgSender {
-
+    function executeDcaTask(
+        address owner,
+        uint256 _id
+    ) external onlyDedicatedMsgSender {
         // Fetch the task
         DcaTask storage task = dcaTasks[owner][_id];
 
@@ -278,9 +277,8 @@ contract MagicDCA is AutomateTaskCreator {
                 amountOut: amountOut
             });
         }
-        // 5. Pay for gelato fee (if applicable)
-        // TODO: Uncomment this
-        // _transfer(fee, feeToken);
+        // 5. Pay for gelato fee
+        _transfer(taskFee, taskFeeToken);
 
         emit DcaTaskExecuted(owner, _id, performedSwaps, taskFee, taskFeeToken);
     }

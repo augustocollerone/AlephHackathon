@@ -153,7 +153,8 @@ describe("MagicDCA", function () {
     const magicDCA = await magicDCAFactory.deploy(
       GelatoAutomateAddress,
       SwapRouterAddress,
-      feeToken
+      feeToken,
+      USDC_ADDRESS
     );
     magicDCA.waitForDeployment();
 

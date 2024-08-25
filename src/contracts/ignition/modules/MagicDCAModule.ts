@@ -1,21 +1,21 @@
 import { buildModule } from "@nomicfoundation/hardhat-ignition/modules";
 
-const WETH_ADDRESS = "0xfFf9976782d46CC05630D1f6eBAb18b2324d6B14";
-const DAI_ADDRESS = "0x3e622317f8C93f7328350cF0B56d9eD4C620C5d6";
-const USDC_ADDRESS = "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238";
+const WETH_ADDRESS: string = process.env.WETH_ADDRESS ?? "";
+const DAI_ADDRESS: string = process.env.DAI_ADDRESS ?? "";
+const USDC_ADDRESS: string = process.env.USDC_ADDRESS ?? "";
 
-const WETH_PRICE_FEED = "0x694AA1769357215DE4FAC081bf1f309aDC325306";
-const DAI_PRICE_FEED = "0x14866185B1962B63C3Ea9E03Bc1da838bab34C19";
+const WETH_PRICE_FEED: string = process.env.WETH_PRICE_FEED ?? "";
+const DAI_PRICE_FEED: string = process.env.DAI_PRICE_FEED ?? "";
 
-const GELATO_AUTOMATE = "0x2A6C106ae13B558BB9E2Ec64Bd2f1f7BEFF3A5E0";
-const UNISWAP_ROUTER = "0xb41b78Ce3D1BDEDE48A3d303eD2564F6d1F6fff0";
+const GELATO_AUTOMATE: string = process.env.GELATO_AUTOMATE ?? "";
+const UNISWAP_ROUTER: string = process.env.UNISWAP_ROUTER ?? "";
 
-const FEE_TOKEN = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE";
+const GELATO_PAYMENT_TOKEN: string = process.env.GELATO_PAYMENT_TOKEN ?? "";
 
 const MagicDCAModule = buildModule("MagicDCAModule", (m) => {
   const testMagicDCA1 = m.contract(
     "MagicDCA",
-    [GELATO_AUTOMATE, UNISWAP_ROUTER, FEE_TOKEN],
+    [GELATO_AUTOMATE, UNISWAP_ROUTER, GELATO_PAYMENT_TOKEN, USDC_ADDRESS],
     {
       id: "testMagicDCA1",
     }
@@ -23,9 +23,9 @@ const MagicDCAModule = buildModule("MagicDCAModule", (m) => {
 
   const newDca = {
     name: "Module Test DCA",
-    amount: 5,
+    amount: 1,
     interval: 60000,
-    maxCount: 10,
+    maxCount: 2,
     outputSwaps: [
       { token: WETH_ADDRESS, percentage: 50 },
       { token: DAI_ADDRESS, percentage: 50 },
@@ -33,9 +33,9 @@ const MagicDCAModule = buildModule("MagicDCAModule", (m) => {
   };
 
   // Fund contract
-  m.call(testMagicDCA1, "receive", [], {
-    value: 3_000_000_000_000_000n, // 1gwei
-  });
+  // m.call(testMagicDCA1, "receive", [], {
+  //   value: 3_000_000_000_000_000n, // 1gwei
+  // });
 
   m.call(testMagicDCA1, "setOracle", [WETH_ADDRESS, WETH_PRICE_FEED], {
     id: "setOracleWETH",
@@ -54,7 +54,7 @@ const MagicDCAModule = buildModule("MagicDCAModule", (m) => {
 
   // Approve contract to use feeToken
   const usdcContract = m.contractAt("IERC20", USDC_ADDRESS);
-  m.call(usdcContract, "approve", [testMagicDCA1, 100]);
+  m.call(usdcContract, "approve", [testMagicDCA1, 3]);
 
   return { dcaTask };
 });
