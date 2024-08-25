@@ -6,20 +6,23 @@ import { anyValue } from "@nomicfoundation/hardhat-chai-matchers/withArgs";
 import { expect } from "chai";
 import hre from "hardhat";
 
-const WETH_ADDRESS = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2";
-const DAI_ADDRESS = "0x6B175474E89094C44Da98b954EedeAC495271d0F";
-const USDC_ADDRESS = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48";
-const LINK_ADDRESS = "0x514910771AF9Ca656af840dff83E8264EcF986CA";
-const UNI_ADDRESS = "0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984";
-
-const WETH_PRICE_FEED = "0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419";
-const DAI_PRICE_FEED = "0xAed0c38402a5d19df6E4c03F4E2DceD6e29c1ee9";
-const UNI_PRICE_FEED = "0x553303d460EE0afB37EdFf9bE42922D8FF63220e";
+const UNI_ADDRESS = process.env.UNI_ADDRESS ?? "";
+const UNI_PRICE_FEED = process.env.UNI_PRICE_FEED ?? "";
 
 const DAI_DECIMALS = 18;
 const USDC_DECIMALS = 6;
-const SwapRouterAddress = "0xE592427A0AEce92De3Edee1F18E0157C05861564";
-const GelatoAutomateAddress = "0x2A6C106ae13B558BB9E2Ec64Bd2f1f7BEFF3A5E0";
+
+const WETH_ADDRESS: string = process.env.WETH_ADDRESS ?? "";
+const DAI_ADDRESS: string = process.env.DAI_ADDRESS ?? "";
+const USDC_ADDRESS: string = process.env.USDC_ADDRESS ?? "";
+
+const WETH_PRICE_FEED: string = process.env.WETH_PRICE_FEED ?? "";
+const DAI_PRICE_FEED: string = process.env.DAI_PRICE_FEED ?? "";
+
+const GELATO_AUTOMATE: string = process.env.GELATO_AUTOMATE ?? "";
+const UNISWAP_ROUTER: string = process.env.UNISWAP_ROUTER ?? "";
+
+const GELATO_PAYMENT_TOKEN: string = process.env.GELATO_PAYMENT_TOKEN ?? "";
 
 const ercAbi = [
   // Read-Only Functions
@@ -106,7 +109,12 @@ describe("MagicDCA", function () {
     await depositWETH.wait();
 
     const simpleSwapFactory = await hre.ethers.getContractFactory("SimpleSwap");
-    const simpleSwap = await simpleSwapFactory.deploy(SwapRouterAddress); // Ensure the contract is deployed
+    const simpleSwap = await simpleSwapFactory.deploy(
+      UNISWAP_ROUTER,
+      DAI_ADDRESS,
+      WETH_ADDRESS,
+      USDC_ADDRESS
+    ); // Ensure the contract is deployed
     simpleSwap.waitForDeployment();
 
     /* Approve the swapper contract to spend WETH for me */
@@ -147,13 +155,11 @@ describe("MagicDCA", function () {
     const DAIBalanceBeforeDCA = await DAI.balanceOf(signer.address);
     const UNIBalanceBeforeDCA = await UNI.balanceOf(signer.address);
 
-    const feeToken = USDC_ADDRESS;
-    // const feeToken = "0x7b79995e5f793A07Bc00c21412e50Ecae098E7f9";
     const magicDCAFactory = await hre.ethers.getContractFactory("MagicDCA");
     const magicDCA = await magicDCAFactory.deploy(
-      GelatoAutomateAddress,
-      SwapRouterAddress,
-      feeToken,
+      GELATO_AUTOMATE,
+      UNISWAP_ROUTER,
+      GELATO_PAYMENT_TOKEN,
       USDC_ADDRESS
     );
     magicDCA.waitForDeployment();

@@ -20,7 +20,7 @@ const config: HardhatUserConfig = {
   networks: {
     hardhat: {
       forking: {
-        url: `https://eth-mainnet.alchemyapi.io/v2/${providerApiKey}`,
+        url: `https://arb-mainnet.alchemyapi.io/v2/${providerApiKey}`,
         enabled: true,
       },
       // mining: {
