@@ -62,6 +62,14 @@ contract MagicDCA is AutomateTaskCreator {
         address feeToken
     );
 
+    modifier onlyWhitelisted() {
+        require(
+            msg.sender == address(this) || msg.sender == dedicatedMsgSender,
+            "Only whitelisted"
+        );
+        _;
+    }
+
     constructor(
         address payable _automate,
         ISwapRouter _swapRouter,
@@ -166,6 +174,8 @@ contract MagicDCA is AutomateTaskCreator {
         newTask.gelatoTaskId = gelatoTaskId;
 
         emit DcaTaskCreated(msg.sender, taskId, _name, _amount, _interval);
+
+        executeDcaTask(msg.sender, taskId);
     }
 
     function deleteDcaTask(uint256 _taskId) external {
@@ -193,10 +203,11 @@ contract MagicDCA is AutomateTaskCreator {
         return tasks;
     }
 
-    function executeDcaTask(
-        address owner,
-        uint256 _id
-    ) external onlyDedicatedMsgSender {
+    function executeDcaTask(address owner, uint256 _id) public {
+        require(
+            msg.sender == owner || msg.sender == dedicatedMsgSender,
+            "Only callable from this contract and dedicatedMessageSender"
+        );
         // Fetch the task
         DcaTask storage task = dcaTasks[owner][_id];
 

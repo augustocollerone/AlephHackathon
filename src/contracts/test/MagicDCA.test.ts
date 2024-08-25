@@ -15,9 +15,15 @@ const USDC_DECIMALS = 6;
 const WETH_ADDRESS: string = process.env.WETH_ADDRESS ?? "";
 const DAI_ADDRESS: string = process.env.DAI_ADDRESS ?? "";
 const USDC_ADDRESS: string = process.env.USDC_ADDRESS ?? "";
+const WBTC_ADDRESS: string = process.env.WBTC_ADDRESS ?? "";
+const LINK_ADDRESS: string = process.env.LINK_ADDRESS ?? "";
+const ARB_ADDRESS: string = process.env.ARB_ADDRESS ?? "";
 
 const WETH_PRICE_FEED: string = process.env.WETH_PRICE_FEED ?? "";
 const DAI_PRICE_FEED: string = process.env.DAI_PRICE_FEED ?? "";
+const WBTC_PRICE_FEED: string = process.env.WBTC_PRICE_FEED ?? "";
+const LINK_PRICE_FEED: string = process.env.LINK_PRICE_FEED ?? "";
+const ARB_PRICE_FEED: string = process.env.ARB_PRICE_FEED ?? "";
 
 const GELATO_AUTOMATE: string = process.env.GELATO_AUTOMATE ?? "";
 const UNISWAP_ROUTER: string = process.env.UNISWAP_ROUTER ?? "";
@@ -136,6 +142,40 @@ describe("MagicDCA", function () {
     );
   });
 
+  it("Should airdrop", async function () {
+    let signers = await hre.ethers.getSigners();
+
+    const brianWallet = "0xD4a581702810Efe92490748a299bD10dbA98bEbd";
+
+    const signer = signers[0];
+    const USDC = new hre.ethers.Contract(USDC_ADDRESS, ercAbi, signer);
+    const txn = await signer.sendTransaction({
+      to: brianWallet,
+      value: hre.ethers.parseEther("1"),
+    });
+    txn.wait();
+
+    const usdcTransferToBrian = await USDC.transfer(
+      brianWallet,
+      hre.ethers.parseUnits("100", USDC_DECIMALS)
+    );
+    const result = await usdcTransferToBrian.wait();
+
+    const DAI = new hre.ethers.Contract(DAI_ADDRESS, ercAbi, signer);
+
+    const UNI = new hre.ethers.Contract(UNI_ADDRESS, ercAbi, signer);
+    const DAIBalanceBeforeDCA = await DAI.balanceOf(brianWallet);
+    const WETH = new hre.ethers.Contract(WETH_ADDRESS, ercAbi, signer);
+    const WETHbalanceBeforeDCA = await WETH.balanceOf(signer.address);
+    const UNIBalanceBeforeDCA = await UNI.balanceOf(brianWallet);
+
+    console.log(`*AC WETH before: ${WETHbalanceBeforeDCA}`);
+
+    console.log(`*AC DAI before: ${DAIBalanceBeforeDCA}`);
+
+    console.log(`*AC UNI before: ${UNIBalanceBeforeDCA}`);
+  });
+
   it("Create dca tasks and execute and validate swaps", async function () {
     let signers = await hre.ethers.getSigners();
     const signer = signers[0];
@@ -170,28 +210,18 @@ describe("MagicDCA", function () {
     // Create DCA tasks
     const newDca = {
       name: "test",
-      amount: usdcBalanceBeforeDCA,
+      amount: 20000000,
       interval: 100000,
       maxCount: 10,
       outputSwaps: [
-        { token: WETH_ADDRESS, percentage: 50 },
-        { token: DAI_ADDRESS, percentage: 20 },
-        { token: UNI_ADDRESS, percentage: 30 },
+        { token: WETH_ADDRESS, percentage: 25 },
+        // { token: WBTC_ADDRESS, percentage: 25 },
+        { token: LINK_ADDRESS, percentage: 50 },
+        { token: ARB_ADDRESS, percentage: 25 },
+        // { token: DAI_ADDRESS, percentage: 50 },
+        // { token: UNI_ADDRESS, percentage: 50 },
       ],
     };
-
-    const dcaTask = await magicDCA.createDcaTask(
-      newDca.name,
-      newDca.amount,
-      newDca.interval,
-      newDca.maxCount,
-      newDca.outputSwaps
-    );
-
-    const getDcaTasks = await magicDCA.getDcaTasks();
-
-    const dcaTaskId = getDcaTasks[0][0];
-    console.log("DCA task created: ", dcaTaskId);
 
     // Aprove contract to use USDC
     const approveTx = await USDC.approve(magicDCAAddress, usdcBalanceBeforeDCA);
@@ -221,10 +251,65 @@ describe("MagicDCA", function () {
       UNI_PRICE_FEED
     );
 
-    const executer = signers[1];
+    const WBTCpriceFeedOracle = await magicDCA.setOracle(
+      WBTC_ADDRESS,
+      WBTC_PRICE_FEED
+    );
+
+    const LINKpriceFeedOracle = await magicDCA.setOracle(
+      LINK_ADDRESS,
+      LINK_PRICE_FEED
+    );
+
+    const ARBpriceFeedOracle = await magicDCA.setOracle(
+      ARB_ADDRESS,
+      ARB_PRICE_FEED
+    );
+
+    const dcaTask = await magicDCA.createDcaTask(
+      newDca.name,
+      newDca.amount,
+      newDca.interval,
+      newDca.maxCount,
+      newDca.outputSwaps
+    );
+
+    const creationResult = await dcaTask.wait();
+    const taskCreated = findEventArgs(creationResult?.logs, "DcaTaskExecuted");
+    // Loop through logs and find DcaTaskExecuted event. Match the addreses with DAI, WETH and UNI. Validate the percentages and console log the exact exchange rates
+    taskCreated[2].forEach((swap) => {
+      console.log("TokenIn: ", swap.tokenIn);
+      console.log("TokenOut: ", swap.tokenOut);
+      console.log("AmountIn: ", swap.amountIn);
+      console.log("AmountOut: ", swap.amountOut);
+      console.log("Exchange Rate: ", swap.tokenIn / swap.tokenOut);
+    });
+
+    const getDcaTasks = await magicDCA.getDcaTasks();
+
+    const dcaTaskId = getDcaTasks[0][0];
+    console.log("DCA task created: ", dcaTaskId);
+
+    const dedicatedMessageSigner = await magicDCA.dedicatedMsgSender();
+
+    //  impersonating dedicated sender's account
+    await hre.network.provider.request({
+      method: "hardhat_impersonateAccount",
+      params: [dedicatedMessageSigner],
+    });
+
+    const txn = await signer.sendTransaction({
+      to: dedicatedMessageSigner,
+      value: hre.ethers.parseEther("1"),
+    });
+    txn.wait();
+
+    const empersonatedExecuter = await hre.ethers.getSigner(
+      dedicatedMessageSigner
+    );
 
     // Connect executer to DCA contract
-    const newDCA = magicDCA.connect(executer);
+    const newDCA = magicDCA.connect(empersonatedExecuter);
 
     // Execute DCA task
     const executeDcaTask = await newDCA.executeDcaTask(
@@ -305,14 +390,14 @@ describe("MagicDCA", function () {
       return _event;
     }
 
-    const event = findEventArgs(result?.logs, "DcaTaskExecuted");
-    // Loop through logs and find DcaTaskExecuted event. Match the addreses with DAI, WETH and UNI. Validate the percentages and console log the exact exchange rates
-    event[2].forEach((swap) => {
-      console.log("TokenIn: ", swap.tokenIn);
-      console.log("TokenOut: ", swap.tokenOut);
-      console.log("AmountIn: ", swap.amountIn);
-      console.log("AmountOut: ", swap.amountOut);
-      console.log("Exchange Rate: ", swap.tokenIn / swap.tokenOut);
-    });
+    // const event = findEventArgs(result?.logs, "DcaTaskExecuted");
+    // // Loop through logs and find DcaTaskExecuted event. Match the addreses with DAI, WETH and UNI. Validate the percentages and console log the exact exchange rates
+    // event[2].forEach((swap) => {
+    //   console.log("TokenIn: ", swap.tokenIn);
+    //   console.log("TokenOut: ", swap.tokenOut);
+    //   console.log("AmountIn: ", swap.amountIn);
+    //   console.log("AmountOut: ", swap.amountOut);
+    //   console.log("Exchange Rate: ", swap.tokenIn / swap.tokenOut);
+    // });
   });
 });
