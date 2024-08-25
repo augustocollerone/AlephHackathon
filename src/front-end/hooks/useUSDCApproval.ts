@@ -18,9 +18,11 @@ export function useUSDCApproval() {
   })
 
   const approveUSDC = async (newAmount: number) => {
-    const newAmountWei = parseUnits(newAmount.toString(), 6) // Convert new amount to Wei (USDC has 6 decimals)
+    const newAmountWei = parseUnits(newAmount.toString(), 6) // Convert new amount to decimals (USDC has 6 decimals)
     const totalScheduledAmount = schedules?.reduce((sum, schedule) => sum + BigInt(schedule.amount), BigInt(0)) ?? BigInt(0)
     const totalRequiredAmountWei = totalScheduledAmount + BigInt(newAmountWei)
+
+    console.log(totalRequiredAmountWei, allowance);
 
     if (!allowance || totalRequiredAmountWei > allowance) {
       console.log('Approving USDC...')

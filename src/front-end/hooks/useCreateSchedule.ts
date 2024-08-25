@@ -33,6 +33,8 @@ export function useCreateSchedule() {
       
       console.log(filteredTokensAndPercentages);
       
+
+      console.log('Creating schedule...')
       await writeContractAsync({
         address,
         abi,

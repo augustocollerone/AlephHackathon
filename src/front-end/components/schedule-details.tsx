@@ -1,9 +1,12 @@
 import React from 'react';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "./ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
 import { Button } from "./ui/button";
 import { ChevronLeft, TrendingUp } from 'lucide-react';
-import { LineChart, Line, XAxis, CartesianGrid, Tooltip, RadarChart, PolarGrid, PolarAngleAxis, Radar } from 'recharts';
+import { Label as RechartsLabel, LineChart, Line, XAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
+import { Progress } from './ui/progress';
+import { ASSETS } from '@/contracts/swapContracts';
+import { Label } from './ui/label';
 
 // Mock data for the chart
 const chartData = [
@@ -15,22 +18,10 @@ const chartData = [
   { date: "2023-06-01", amountOfEthBought: 1.2 },
 ]
 
-const chartDataRadar = [
-  { token: "WETH", percentage: 30, usd: 300 },
-  { token: "WBTC", percentage: 25, usd: 250 },
-  { token: "ARB", percentage: 15, usd: 150 },
-  { token: "AVAX", percentage: 15, usd: 150 },
-  { token: "LINK", percentage: 15, usd: 150 },
-]
-
 const chartConfigRadar = {
   percentage: {
     label: "Percentage",
     color: "hsl(var(--chart-1))",
-  },
-  usd: {
-    label: "USD",
-    color: "hsl(var(--chart-2))",
   },
 } satisfies ChartConfig
 
@@ -41,33 +32,134 @@ const chartConfig = {
   },
 } satisfies ChartConfig
 
-interface ScheduleDetailsProps {
-  schedule: any;
-  onBack: () => void;
-}
+interface ScheduleDetailsProp {
+  id: bigint;
+  name: string;
+  amount: bigint;
+  interval: bigint;
+  count: bigint;
+  maxCount: bigint;
+  gelatoTaskId: `0x${string}`;
+  outputSwaps: readonly {
+    token: `0x${string}`;
+    percentage: number;
+  }[];
+  created: bigint;
+  lastExecuted: bigint;
+  active: boolean;
+};
 
-export function ScheduleDetails({ schedule, onBack }: ScheduleDetailsProps) {
+const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82ca9d'];
+
+export function ScheduleDetails({ schedule, onBack }: { schedule: ScheduleDetailsProp, onBack: () => void }) {
+  const chartDataPie = schedule.outputSwaps.map(swap => {
+    const asset = ASSETS.find(asset => asset.address.toLowerCase() === swap.token.toLowerCase());
+    return {
+      name: asset ? asset.name : 'Unknown',
+      value: swap.percentage,
+    };
+  });
+
   return (
-    <div className="h-full flex flex-col">
-          <Card className="h-full flex flex-col">
-      <CardHeader>
+    <Card className="h-full flex flex-col gap-4">
+      <CardHeader className='gap-2'>
         <div className="flex justify-start items-center gap-2">
           <Button variant="ghost" onClick={onBack}>
             <ChevronLeft className="w-4 h-4" />
           </Button>
           <CardTitle>Schedule Details</CardTitle>
         </div>
+        <div className="space-y-2">
+          <Progress value={(Number(schedule.count) / Number(schedule.maxCount)) * 100} />
+          <Label>
+            {schedule.count.toString()} of {schedule.maxCount.toString()} swaps done - Next on {new Date(Number(schedule.lastExecuted) * 1000 + Number(schedule.interval)).toLocaleDateString()}
+          </Label>
+        </div>
       </CardHeader>
-    </Card>
+      <CardContent className="space-y-8 overflow-y-auto">
 
+        <div>
+          <h3 className="text-lg font-semibold mb-2">Token Distribution</h3>
+          <p className="text-sm text-muted-foreground mb-4">Current allocation</p>
+          <ChartContainer
+            config={chartConfigRadar}
+            className="mx-auto aspect-square max-h-[250px]"
+          >
+            <PieChart>
+              <ChartTooltip
+                cursor={false}
+                content={<ChartTooltipContent hideLabel />}
+              />
+              <Pie
+                data={chartDataPie}
+                dataKey="value"
+                nameKey="name"
+                innerRadius={60}
+                strokeWidth={5}
+              >
+                {chartDataPie.map((entry, index) => (
+                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                ))}
+                <Pie
+                  data={chartDataPie}
+                  dataKey="value"
+                  nameKey="name"
+                  innerRadius={80}  // Increased inner radius
+                  outerRadius={100} // Added outer radius
+                  strokeWidth={5}
+                >
+                  {chartDataPie.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  ))}
+                </Pie>
+                <RechartsLabel
+                  content={({ viewBox }) => {
+                    if (viewBox && "cx" in viewBox && "cy" in viewBox) {
+                      const totalAmount = Number(schedule.amount) / 1e6; // Assuming amount is in USDC (6 decimals)
+                      return (
+                        <text
+                          x={viewBox.cx}
+                          y={viewBox.cy}
+                          textAnchor="middle"
+                          dominantBaseline="middle"
+                        >
+                          <tspan
+                            x={viewBox.cx}
+                            y={viewBox.cy - 10}
+                            className="fill-foreground text-2xl font-bold"
+                          >
+                            ${totalAmount.toFixed(2)}
+                          </tspan>
+                          <tspan
+                            x={viewBox.cx}
+                            y={(viewBox.cy || 0) + 15}
+                            className="fill-muted-foreground text-sm"
+                          >
+                            USDC
+                          </tspan>
+                        </text>
+                      )
+                    }
+                  }}
+                />
+              </Pie>
+            </PieChart>
+          </ChartContainer>
+          <div className="mt-4 text-sm">
+            <p className="flex items-center gap-2 font-medium">
+              Distribution as per schedule
+            </p>
+            <p className="text-muted-foreground">
+              Created on {new Date(Number(schedule.created) * 1000).toLocaleDateString()}
+            </p>
+          </div>
+        </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Amount of ETH Bought</CardTitle>
-            <CardDescription>January - June 2023</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ChartContainer config={chartConfig}>
+        <div>
+          <h3 className="text-lg font-semibold mb-2">Amount of ETH Bought</h3>
+          <p className="text-sm text-muted-foreground mb-4">January - June 2023</p>
+          <ChartContainer config={chartConfig}>
+            <ResponsiveContainer width="100%" height={300}>
               <LineChart
                 data={chartData}
                 margin={{
@@ -89,65 +181,24 @@ export function ScheduleDetails({ schedule, onBack }: ScheduleDetailsProps) {
                   type="natural"
                   stroke="var(--color-amountOfEthBought)"
                   strokeWidth={2}
-                  dot={{
-                    fill: "var(--color-desktop)",
-                  }}
                   activeDot={{
                     r: 6,
                   }}
                 />
               </LineChart>
-            </ChartContainer>
-          </CardContent>
-          <CardFooter>
-            <div className="flex w-full items-start gap-2 text-sm">
-              <div className="grid gap-2">
-                <div className="flex items-center gap-2 font-medium leading-none">
-                  ETH Bought trending up by 140% <TrendingUp className="h-4 w-4" />
-                </div>
-                <div className="flex items-center gap-2 leading-none text-muted-foreground">
-                  Showing Amount of ETH Bought for the last 6 months
-                </div>
-              </div>
-            </div>
-          </CardFooter>
-        </Card>
-        <Card>
-          <CardHeader className="items-center pb-4">
-            <CardTitle>Radar Chart - Grid Filled</CardTitle>
-            <CardDescription>
-              Showing total visitors for the last 6 months
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="pb-0">
-            <ChartContainer
-              config={chartConfigRadar}
-              className="mx-auto aspect-square max-h-[250px]"
-            >
-              <RadarChart data={chartDataRadar}>
-                <ChartTooltip
-                  cursor={false}
-                  content={<ChartTooltipContent hideLabel />}
-                />
-                <PolarGrid gridType="polygon" />
-                <PolarAngleAxis dataKey="token" />
-                <Radar
-                  dataKey="percentage"
-                  fill="var(--color-percentage)"
-                  fillOpacity={0.5}
-                />
-              </RadarChart>
-            </ChartContainer>
-          </CardContent>
-          <CardFooter className="flex-col gap-2 text-sm">
-            <div className="flex items-center gap-2 font-medium leading-none">
-              Trending up by 5.2% this token <TrendingUp className="h-4 w-4" />
-            </div>
-            <div className="flex items-center gap-2 leading-none text-muted-foreground">
-              January - June 2024
-            </div>
-          </CardFooter>
-        </Card>
-    </div>
+            </ResponsiveContainer>
+          </ChartContainer>
+          <div className="mt-4 text-sm">
+            <p className="flex items-center gap-2 font-medium">
+              ETH Bought trending up by 140% <TrendingUp className="h-4 w-4" />
+            </p>
+            <p className="text-muted-foreground">
+              Showing Amount of ETH Bought for the last 6 months
+            </p>
+          </div>
+        </div>
+
+      </CardContent>
+    </Card>
   );
 }

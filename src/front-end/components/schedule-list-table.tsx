@@ -24,7 +24,7 @@ export function ScheduleListTable({ onSelectSchedule }: { onSelectSchedule: (sch
   }, [isError])
 
   return (
-    <Card className="h-full flex flex-col">
+    <Card className="flex flex-col">
       <CardHeader>
         <CardTitle>DCA Schedules</CardTitle>
       </CardHeader>

@@ -89,7 +89,7 @@ export function CreateDCAScheduleCard() {
     const oldValue = assetPercentages[assetName]
     const diff = newValue - oldValue
 
-    const newPercentages = { ...assetPercentages, [assetName]: newValue }
+    const newPercentages = { ...assetPercentages, [assetName]: Math.round(newValue) }
 
     const otherAssets = Object.keys(assetPercentages).filter(name => name !== assetName)
     const totalOtherPercentages = otherAssets.reduce((sum, name) => sum + newPercentages[name], 0)
@@ -97,7 +97,7 @@ export function CreateDCAScheduleCard() {
     if (totalOtherPercentages > 0) {
       otherAssets.forEach(name => {
         const ratio = newPercentages[name] / totalOtherPercentages
-        newPercentages[name] = Math.max(0, newPercentages[name] - diff * ratio)
+        newPercentages[name] = Math.max(0, Math.round(newPercentages[name] - diff * ratio))
       })
     }
 
@@ -105,14 +105,14 @@ export function CreateDCAScheduleCard() {
     const total = Object.values(newPercentages).reduce((sum, value) => sum + value, 0)
     if (total !== 100) {
       const adjustment = 100 - total
-      newPercentages[assetName] += adjustment
+      newPercentages[assetName] = Math.round(newPercentages[assetName] + adjustment)
     }
 
     setAssetPercentages(newPercentages)
   }
 
   return (
-    <Card className="w-full h-full">
+    <Card className="w-full">
       <CardHeader>
         <div className="flex justify-end mb-4">
           <CustomConnectButton />
@@ -167,7 +167,7 @@ export function CreateDCAScheduleCard() {
             min={0}
             step={1}
           />
-          <p className="text-sm text-gray-500">{assetPercentages.WETH.toFixed(2)}%</p>
+          <p className="text-sm text-gray-500">{assetPercentages.WETH}%</p>
         </div>
         <Accordion type="single" collapsible>
           <AccordionItem value="item-1">
@@ -185,7 +185,7 @@ export function CreateDCAScheduleCard() {
                       min={0}
                       step={1}
                     />
-                    <p className="text-sm text-gray-500">{assetPercentages[asset.name].toFixed(2)}%</p>
+                    <p className="text-sm text-gray-500">{assetPercentages[asset.name]}%</p>
                   </div>
                 ))}
               </div>
