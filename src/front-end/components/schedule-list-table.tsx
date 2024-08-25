@@ -2,12 +2,12 @@ import { useEffect } from "react"
 import { useGetSchedule } from "@/hooks/useGetSchedule"
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "./ui/table"
-import { TruncatedAmount } from "./ui/truncated-amount"
 import { Skeleton } from "./ui/skeleton"
 import { Button } from "./ui/button"
 import { toast } from "./ui/use-toast"
 import { millisecondsToTimeFrame } from "@/utils/timeUtils"
 import { formatDistanceToNow } from "date-fns"
+import { TruncatedAmount } from "./ui/truncated-amount"
 
 export function ScheduleListTable({ onSelectSchedule }: { onSelectSchedule: (schedule: any) => void }) {
   const { schedules, isError, isLoading } = useGetSchedule()
@@ -18,7 +18,7 @@ export function ScheduleListTable({ onSelectSchedule }: { onSelectSchedule: (sch
         title: "Failed to fetch schedules",
         description: "Please try again",
         variant: "destructive",
-        action: <Button variant="outline" onClick={() => window.location.reload()}>Retry</Button>
+        action: <Button variant="outline" onClick={() => window.location.reload()} className="text-black">Retry</Button>
       })
     }
   }, [isError])

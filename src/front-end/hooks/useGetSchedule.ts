@@ -2,7 +2,7 @@ import { useAccount, useReadContract } from 'wagmi'
 import deployedContracts from '../contracts/deployedContracts'
 
 export function useGetSchedule() {
-  const { address: accountAddress } = useAccount();
+  const { address: accountAddress, isConnected } = useAccount();
   const { address, abi } = deployedContracts.DCAScheduler;
 
   const { data: schedules, isError, isLoading } = useReadContract({
@@ -11,6 +11,10 @@ export function useGetSchedule() {
     functionName: 'getDcaTasks',
     account: accountAddress,
   })
+
+  if (!isConnected) {
+    return { schedules: [], isError: false, isLoading: false };
+  }
 
   return { schedules, isError, isLoading };
 }
