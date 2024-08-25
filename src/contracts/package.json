@@ -18,7 +18,7 @@
     "deploy:arbitrum": "npx hardhat --network arbitrum ignition deploy ignition/modules/MagicDCAModule.ts",
     "deploy:arbitrum2": "npx hardhat --network arbitrum ignition deploy ignition/modules/MagicDCAModule2.ts",
     "deploy:arbitrum3": "npx hardhat --network arbitrum ignition deploy ignition/modules/MagicDCAModule3.ts",
-    "deploy:polygon": "npx hardhat --network polygon ignition deploy ignition/modules/MagicDCAModule3.ts",
+    "deploy:zkSync": "npx hardhat --network zkSync ignition deploy ignition/modules/MagicDCAModule3.ts",
     "deploy:local": "npx hardhat --network localhost ignition deploy ignition/modules/MagicDCAModule.ts",
     "verify:sepolia": " npx hardhat ignition verify chain-11155111 --include-unrelated-contracts",
     "verify:arbitrum": " npx hardhat ignition verify chain-42161 --include-unrelated-contracts"

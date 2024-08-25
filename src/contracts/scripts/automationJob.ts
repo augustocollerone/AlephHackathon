@@ -8,14 +8,14 @@ interface Task {
   interval: bigint;
   count: number;
   maxCount: number;
-  lastExecuted: number;
+  lastExecuted: bigint;
   active: boolean;
 }
 
 let tasks: Task[] = [];
 
+const magicDcaContract = "0x16bCC9334f6e10b0293A4F9bec9eF058A1b7605a";
 async function getAllDcaTasks(): Promise<Task[]> {
-  const magicDcaContract = "0xD64616714b1E53643E1F97c8cCA235EAC2247BBa";
   const magicDCA = await hre.ethers.getContractAt("MagicDCA", magicDcaContract);
 
   // Create a filter for the DcaTaskCreated event
@@ -33,7 +33,7 @@ async function getAllDcaTasks(): Promise<Task[]> {
     interval: event.args.interval,
     count: 0,
     maxCount: 0,
-    lastExecuted: 0,
+    lastExecuted: BigInt(0),
     active: true,
   }));
 
@@ -44,19 +44,19 @@ async function getAllDcaTasks(): Promise<Task[]> {
 
 async function updateTaskState(task: Task) {
   console.log(`Updating task state for task ${task.taskId}...`);
-  const magicDcaContract = "0xD64616714b1E53643E1F97c8cCA235EAC2247BBa";
   const magicDCA = await hre.ethers.getContractAt("MagicDCA", magicDcaContract);
 
   const dcaTask = await magicDCA.dcaTasks(task.user, task.taskId);
 
+  console.log(`Task ${task.taskId} state:`, dcaTask);
+
   task.count = parseInt(dcaTask.count.toString());
   task.maxCount = parseInt(dcaTask.maxCount.toString());
-  task.lastExecuted = parseInt(dcaTask.lastExecuted.toString());
+  task.lastExecuted = dcaTask.lastExecuted;
   task.active = dcaTask.active;
 }
 
 async function monitorNewTasks() {
-  const magicDcaContract = "0xD64616714b1E53643E1F97c8cCA235EAC2247BBa";
   const magicDCA = await hre.ethers.getContractAt("MagicDCA", magicDcaContract);
 
   magicDCA.on(
@@ -70,7 +70,7 @@ async function monitorNewTasks() {
         interval,
         count: 0,
         maxCount: 0,
-        lastExecuted: 0,
+        lastExecuted: BigInt(0),
         active: true,
       });
       console.log(`New task created: ${taskId}`);
@@ -79,43 +79,40 @@ async function monitorNewTasks() {
 }
 
 async function executeTask(task: Task) {
-  const currentTime = Math.floor(Date.now() / 1000);
-
-  if (
-    task.active &&
-    task.count < task.maxCount &&
-    currentTime - task.lastExecuted >= task.interval
-  ) {
+  if (task.active && task.count < task.maxCount) {
+    console.log(`RUNNING Task ${task.taskId}`);
     try {
-      const magicDcaContract = "0xD64616714b1E53643E1F97c8cCA235EAC2247BBa";
       const magicDCA = await hre.ethers.getContractAt(
         "MagicDCA",
         magicDcaContract
       );
 
-      const dedicatedMessageSigner = await magicDCA.dedicatedMsgSender();
+      // const dedicatedMessageSigner = await magicDCA.dedicatedMsgSender();
+      // // Impersonating dedicated sender's account
+      // await hre.network.provider.request({
+      //   method: "hardhat_impersonateAccount",
+      //   params: [dedicatedMessageSigner],
+      // });
 
-      //  impersonating dedicated sender's account
-      await hre.network.provider.request({
-        method: "hardhat_impersonateAccount",
-        params: [dedicatedMessageSigner],
-      });
+      // const impersonatedExecuter = await hre.ethers.getSigner(
+      //   dedicatedMessageSigner
+      // );
 
-      const empersonatedExecuter = await hre.ethers.getSigner(
-        dedicatedMessageSigner
-      );
+      // // Connect executer to DCA contract
+      // const newDCA = magicDCA.connect(impersonatedExecuter);
 
-      // Connect executer to DCA contract
-      const newDCA = magicDCA.connect(empersonatedExecuter);
-
-      await newDCA.executeDcaTask(task.user, task.taskId); // Replace with the function that needs to be executed
-      console.log(`Task ${task.taskId} executed successfully.`);
+      const swapResults = await magicDCA.executeDcaTask(task.user, task.taskId); // Execute the task
+      console.log(`Task ${task.taskId} executed successfully.\n\n`);
 
       // Update the task state after execution
       await updateTaskState(task);
     } catch (error) {
       console.error(`Error executing task ${task.taskId}:`, error);
     }
+  } else {
+    console.log(
+      `Task ${task.taskId} is inactive or has reached its max count.`
+    );
   }
 }
 
@@ -125,7 +122,7 @@ async function checkTasks() {
     for (const task of tasks) {
       await executeTask(task);
     }
-    await new Promise((resolve) => setTimeout(resolve, 1000)); // Wait one second before checking again
+    await new Promise((resolve) => setTimeout(resolve, 60000)); // Wait one second before checking again
   }
 }
 

@@ -40,6 +40,10 @@ const config: HardhatUserConfig = {
       url: `https://polygon-mainnet.g.alchemy.com/v2/${providerApiKey}`,
       accounts: [deployerPrivateKey],
     },
+    zkSync: {
+      url: `https://zksync-mainnet.g.alchemy.com/v2/DOCn2EvFtekq1LCskU7BQPryWPmiuSgi`,
+      accounts: [deployerPrivateKey],
+    },
   },
   defaultNetwork: "localhost",
   etherscan: {

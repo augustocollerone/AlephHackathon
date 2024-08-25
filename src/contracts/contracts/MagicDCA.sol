@@ -43,6 +43,9 @@ contract MagicDCA is AutomateTaskCreator {
     address public immutable USDC;
     address public immutable feeToken;
 
+    address public constant whitelistedExecuter =
+        0x2Ca2a19DeDC963E4D75d81044235736E3a34c3f8;
+
     // Mapping from token address to Chainlink oracle address
     mapping(address => address) public tokenToOracle;
 
@@ -205,10 +208,10 @@ contract MagicDCA is AutomateTaskCreator {
     }
 
     function executeDcaTask(address owner, uint256 _id) public {
-        // require(
-        //     msg.sender == owner || msg.sender == dedicatedMsgSender,
-        //     "Only callable from this contract and dedicatedMessageSender"
-        // );
+        require(
+            msg.sender == owner || msg.sender == whitelistedExecuter,
+            "Only callable from this contract and whitelistedExecuter"
+        );
         // Fetch the task
         DcaTask storage task = dcaTasks[owner][_id];
 
