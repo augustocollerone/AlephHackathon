@@ -30,11 +30,7 @@ export function useCreateSchedule() {
         token: item.token,
         percentage: Math.floor(item.percentage) // Convert percentage to uint (e.g., 12.34% becomes 1234)
       }));
-      
-      console.log(filteredTokensAndPercentages);
-      
 
-      console.log('Creating schedule...')
       await writeContractAsync({
         address,
         abi,

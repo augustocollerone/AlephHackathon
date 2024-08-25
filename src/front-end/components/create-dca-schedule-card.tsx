@@ -194,14 +194,14 @@ export function CreateDCAScheduleCard() {
         </Accordion>
 
         <div className="space-y-2">
-          <Label htmlFor="time-frame">Time Frame</Label>
+          <Label htmlFor="time-frame">Swap interval</Label>
           <TimeFrameSelector value={timeFrame} onChange={setTimeFrame} />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="max-count">Max Count</Label>
+          <Label htmlFor="max-count">Amount of swaps</Label>
           <Input
             id="max-count"
-            placeholder="Enter max count"
+            placeholder="Enter repition of swaps"
             value={maxCount}
             onChange={(e) => setMaxCount(e.target.value)}
             type="number"

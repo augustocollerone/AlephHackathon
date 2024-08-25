@@ -10,7 +10,7 @@ import { formatDistanceToNow } from "date-fns"
 import { TruncatedAmount } from "./ui/truncated-amount"
 
 export function ScheduleListTable({ onSelectSchedule }: { onSelectSchedule: (schedule: any) => void }) {
-  const { schedules, isError, isLoading } = useGetSchedule()
+  const { schedules, isError, isLoading, setSchedules } = useGetSchedule()
 
   useEffect(() => {
     if (isError) {
@@ -61,14 +61,14 @@ export function ScheduleListTable({ onSelectSchedule }: { onSelectSchedule: (sch
                           alt="USDC Logo"
                           className="w-5 h-5 mr-2"
                         />
-                        <TruncatedAmount amount={(Number(schedule.amount) / 1e6).toFixed(2)}/>
+                        <TruncatedAmount amount={(Number(schedule.amount) / 1e6).toFixed(2)} />
                       </div>
                     </TableCell>
                     <TableCell className="py-4">{millisecondsToTimeFrame(Number(schedule.interval))}</TableCell>
                     <TableCell className="py-4">
                       {(() => {
-                        const lastExecuted = new Date(Number(schedule.lastExecuted) * 1000);
-                        return formatDistanceToNow(lastExecuted, { addSuffix: true });
+                        const lastExecuted = schedule.lastExecuted ? new Date(Number(schedule.lastExecuted) * 1000) : null;
+                        return lastExecuted ? formatDistanceToNow(lastExecuted, { addSuffix: true }) : "-";
                       })()}
                     </TableCell>
                   </TableRow>

@@ -1,6 +1,6 @@
 const deployedContracts = {
     DCAScheduler: {
-      address: '0xD64616714b1E53643E1F97c8cCA235EAC2247BBa',
+      address: '0x64A7D5057C435eD74a058dF66Ea252dB0AE8a2CE',
       abi: [
         {
           "inputs": [

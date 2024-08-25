@@ -22,10 +22,7 @@ export function useUSDCApproval() {
     const totalScheduledAmount = schedules?.reduce((sum, schedule) => sum + BigInt(schedule.amount), BigInt(0)) ?? BigInt(0)
     const totalRequiredAmountWei = totalScheduledAmount + BigInt(newAmountWei)
 
-    console.log(totalRequiredAmountWei, allowance);
-
     if (!allowance || totalRequiredAmountWei > allowance) {
-      console.log('Approving USDC...')
       try {
         await writeContractAsync({
           address: USDC_ADDRESS,
@@ -33,13 +30,10 @@ export function useUSDCApproval() {
           functionName: 'approve',
           args: [deployedContracts.DCAScheduler.address, totalRequiredAmountWei],
         })
-        console.log('USDC approved successfully')
       } catch (error) {
-        console.error('Error approving USDC:', error)
         throw error
       }
     } else {
-      console.log('Sufficient allowance already exists')
     }
   }
 
