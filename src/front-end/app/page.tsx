@@ -9,12 +9,12 @@ export default function Home() {
   const [selectedSchedule, setSelectedSchedule] = useState(null);
 
   return (
-    <div className="flex sm:items-start md:items-center justify-center min-h-screen">
-      <div className="flex flex-col md:flex-row gap-8 w-full p-4 h-full]">
-        <div className="w-full md:w-2/6 h-auto md:h-full">
+    <div className="flex sm:items-start md:items-start justify-center min-h-screen pt-4 md:pt-16">
+      <div className="flex flex-col md:flex-row gap-8 w-full p-4 md:h-[calc(100vh-4rem)]">
+        <div className="w-full md:w-2/6 md:h-full md:overflow-y-auto">
           <CreateDCAScheduleCard />
         </div>
-        <div className="w-full md:w-4/6 h-auto md:h-full">
+        <div className="w-full md:w-4/6 md:h-full md:overflow-y-auto">
           {selectedSchedule ? (
             <ScheduleDetails
               schedule={selectedSchedule}
