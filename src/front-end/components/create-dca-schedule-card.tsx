@@ -38,6 +38,8 @@ export function CreateDCAScheduleCard() {
     token: USDC_ADDRESS,
   })
 
+  const isAmountValid = balance ? Number(amount) <= Number(balance.formatted) : true
+
   useEffect(() => {
     if (isSuccess) {
       toast({
@@ -56,7 +58,7 @@ export function CreateDCAScheduleCard() {
       return
     }
 
-    if (amount && timeFrame) {
+    if (amount && timeFrame && isAmountValid) {
       try {
         const intervalInMilliseconds = timeFrameToMilliseconds(timeFrame)
 
@@ -79,8 +81,8 @@ export function CreateDCAScheduleCard() {
       }
     } else {
       toast({
-        title: "Please fill in all fields",
-        description: "You need to fill in the amount and time frame to create a schedule",
+        title: "Please fill in all fields correctly",
+        description: "You need to fill in the amount (not exceeding your balance) and time frame to create a schedule",
       })
     }
   }
@@ -144,7 +146,7 @@ export function CreateDCAScheduleCard() {
                 placeholder="Enter amount"
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
-                className="pl-10"
+                className={`pl-10 ${!isAmountValid ? 'border-red-500' : ''}`}
                 type="number"
                 min="0"
                 step="0.01"
@@ -152,7 +154,7 @@ export function CreateDCAScheduleCard() {
             </div>
           </div>
           {balance && (
-            <p className="text-sm text-gray-500">
+            <p className={`text-sm ${!isAmountValid ? 'text-red-500' : 'text-gray-500'}`}>
               Balance: {parseFloat(balance.formatted).toFixed(2)} {balance.symbol}
             </p>
           )}
@@ -217,7 +219,7 @@ export function CreateDCAScheduleCard() {
             Please wait
           </Button>
         ) : (
-          <Button onClick={handleCreateSchedule} className="w-full h-10" disabled={isLoading || !isConnected}>
+          <Button onClick={handleCreateSchedule} className="w-full h-10" disabled={isLoading || !isConnected || !isAmountValid || !amount}>
             Create DCA Schedule
           </Button>
         )}
