@@ -211,7 +211,7 @@ describe("MagicDCA", function () {
     const newDca = {
       name: "test",
       amount: 20000000,
-      interval: 100000,
+      interval: 2000,
       maxCount: 10,
       outputSwaps: [
         { token: WETH_ADDRESS, percentage: 25 },

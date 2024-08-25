@@ -19,6 +19,7 @@ const config: HardhatUserConfig = {
   solidity: "0.8.24",
   networks: {
     hardhat: {
+      // chainId: 31337,
       forking: {
         url: `https://arb-mainnet.alchemyapi.io/v2/${providerApiKey}`,
         enabled: true,
@@ -33,6 +34,10 @@ const config: HardhatUserConfig = {
     },
     sepolia: {
       url: `https://eth-sepolia.g.alchemy.com/v2/${providerApiKey}`,
+      accounts: [deployerPrivateKey],
+    },
+    polygon: {
+      url: `https://polygon-mainnet.g.alchemy.com/v2/${providerApiKey}`,
       accounts: [deployerPrivateKey],
     },
   },

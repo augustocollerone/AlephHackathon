@@ -136,6 +136,7 @@ contract MagicDCA is AutomateTaskCreator {
         newTask.gelatoTaskId = bytes32(0); // Initialize as empty, will set after creating Gelato task
         newTask.created = block.timestamp;
         newTask.lastExecuted = block.timestamp;
+        newTask.active = true;
 
         // Copy the outputSwaps array
         for (uint256 i = 0; i < _outputSwaps.length; i++) {
@@ -204,10 +205,10 @@ contract MagicDCA is AutomateTaskCreator {
     }
 
     function executeDcaTask(address owner, uint256 _id) public {
-        require(
-            msg.sender == owner || msg.sender == dedicatedMsgSender,
-            "Only callable from this contract and dedicatedMessageSender"
-        );
+        // require(
+        //     msg.sender == owner || msg.sender == dedicatedMsgSender,
+        //     "Only callable from this contract and dedicatedMessageSender"
+        // );
         // Fetch the task
         DcaTask storage task = dcaTasks[owner][_id];
 
@@ -231,7 +232,7 @@ contract MagicDCA is AutomateTaskCreator {
 
         if (task.count >= task.maxCount) {
             task.active = false;
-            _cancelTask(task.gelatoTaskId);
+            // _cancelTask(task.gelatoTaskId);
         }
 
         // Move USDC from user wallet to this contract
