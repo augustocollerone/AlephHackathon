@@ -147,10 +147,13 @@ describe("MagicDCA", function () {
     const DAIBalanceBeforeDCA = await DAI.balanceOf(signer.address);
     const UNIBalanceBeforeDCA = await UNI.balanceOf(signer.address);
 
+    const feeToken = USDC_ADDRESS;
+    // const feeToken = "0x7b79995e5f793A07Bc00c21412e50Ecae098E7f9";
     const magicDCAFactory = await hre.ethers.getContractFactory("MagicDCA");
     const magicDCA = await magicDCAFactory.deploy(
       GelatoAutomateAddress,
-      SwapRouterAddress
+      SwapRouterAddress,
+      feeToken
     );
     magicDCA.waitForDeployment();
 
@@ -163,7 +166,6 @@ describe("MagicDCA", function () {
       amount: 50,
       interval: 100000,
       maxCount: 10,
-      feeToken: "0x7b79995e5f793A07Bc00c21412e50Ecae098E7f9",
       outputSwaps: [
         { token: WETH_ADDRESS, percentage: 50 },
         { token: DAI_ADDRESS, percentage: 20 },
@@ -176,7 +178,6 @@ describe("MagicDCA", function () {
       newDca.amount,
       newDca.interval,
       newDca.maxCount,
-      newDca.feeToken,
       newDca.outputSwaps
     );
 
@@ -213,13 +214,23 @@ describe("MagicDCA", function () {
       UNI_PRICE_FEED
     );
 
+    const executer = signers[1];
+
+    // Connect executer to DCA contract
+    const newDCA = magicDCA.connect(executer);
+
     // Execute DCA task
-    const executeDcaTask = await magicDCA.executeDcaTask(
+    const executeDcaTask = await newDCA.executeDcaTask(
       signer.address,
       dcaTaskId
     );
 
-    await executeDcaTask.wait();
+    const result = await executeDcaTask.wait();
+    console.log(
+      `*AC DCA task owner: ${signer.address}, executer: ${
+        result?.from ?? "null"
+      }`
+    );
 
     const usdcBalanceAfterDCA = await USDC.balanceOf(signer.address);
     const usdcBalanceAfterFormattedDCA = Number(

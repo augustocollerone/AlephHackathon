@@ -13,6 +13,13 @@ struct OutputSwap {
     uint8 percentage;
 }
 
+struct PerformedSwap {
+    address tokenIn;
+    address tokenOut;
+    uint256 amountIn;
+    uint256 amountOut;
+}
+
 struct DcaTask {
     uint256 id;
     string name;
@@ -20,11 +27,11 @@ struct DcaTask {
     uint128 interval;
     uint256 count;
     uint256 maxCount;
-    address feeToken;
     bytes32 gelatoTaskId;
     OutputSwap[] outputSwaps;
     uint256 created;
     uint256 lastExecuted;
+    bool active;
 }
 
 contract MagicDCA is AutomateTaskCreator {
@@ -34,19 +41,34 @@ contract MagicDCA is AutomateTaskCreator {
     ISwapRouter public immutable swapRouter;
 
     address public constant USDC = 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48; // Mainnet address
+    address public immutable feeToken;
 
     // Mapping from token address to Chainlink oracle address
     mapping(address => address) public tokenToOracle;
 
-    event DcaTaskCreated(address indexed user, uint256 taskId, string name);
+    event DcaTaskCreated(
+        address indexed user,
+        uint256 taskId,
+        string name,
+        uint256 amount,
+        uint128 interval
+    );
     event DcaTaskDeleted(address indexed user, uint256 taskId);
-    event DcaTaskExecuted(address indexed user, uint256 taskId);
+    event DcaTaskExecuted(
+        address indexed user,
+        uint256 taskId,
+        PerformedSwap[] swaps,
+        uint256 fee,
+        address feeToken
+    );
 
     constructor(
         address payable _automate,
-        ISwapRouter _swapRouter
+        ISwapRouter _swapRouter,
+        address _feeToken
     ) AutomateTaskCreator(_automate) {
         swapRouter = _swapRouter;
+        feeToken = _feeToken;
     }
 
     // TODO: Delete this
@@ -65,8 +87,8 @@ contract MagicDCA is AutomateTaskCreator {
 
         // TODO: also check that price feed is not older than 10 minutes
         AggregatorV3Interface priceFeed = AggregatorV3Interface(oracleAddress);
-        (, int price, , , ) = priceFeed.latestRoundData();
-        uint8 decimals = priceFeed.decimals();
+        (, price, , , ) = priceFeed.latestRoundData();
+        decimals = priceFeed.decimals();
         return (price, decimals);
     }
 
@@ -75,7 +97,6 @@ contract MagicDCA is AutomateTaskCreator {
         uint256 _amount,
         uint128 _interval,
         uint256 _maxCount,
-        address _feeToken,
         OutputSwap[] memory _outputSwaps
     ) external {
         uint256 totalPercentage = 0;
@@ -102,7 +123,6 @@ contract MagicDCA is AutomateTaskCreator {
         newTask.interval = _interval;
         newTask.count = 0;
         newTask.maxCount = _maxCount;
-        newTask.feeToken = _feeToken;
         newTask.gelatoTaskId = bytes32(0); // Initialize as empty, will set after creating Gelato task
         newTask.created = block.timestamp;
         newTask.lastExecuted = block.timestamp;
@@ -137,29 +157,27 @@ contract MagicDCA is AutomateTaskCreator {
             address(this),
             execData,
             moduleData,
-            newTask.feeToken
+            feeToken
         );
 
         // Update the Gelato task ID in the new task
         newTask.gelatoTaskId = gelatoTaskId;
 
-        emit DcaTaskCreated(msg.sender, taskId, _name);
+        emit DcaTaskCreated(msg.sender, taskId, _name, _amount, _interval);
     }
 
     function deleteDcaTask(uint256 _taskId) external {
-        // Check if the task exists
-        require(dcaTasks[msg.sender][_taskId].id != 0, "Task does not exist");
-        delete dcaTasks[msg.sender][_taskId];
+        // Fetch the task
+        DcaTask storage task = dcaTasks[msg.sender][_taskId];
 
-        // Remove the task ID from the user's task ID array
-        uint256[] storage taskIds = userTaskIds[msg.sender];
-        for (uint256 i = 0; i < taskIds.length; i++) {
-            if (taskIds[i] == _taskId) {
-                taskIds[i] = taskIds[taskIds.length - 1];
-                taskIds.pop();
-                break;
-            }
-        }
+        // Check if the task exists
+        require(task.id != 0, "Task does not exist");
+
+        // Update the active status
+        task.active = false;
+
+        // Cancel the task
+        _cancelTask(task.gelatoTaskId);
 
         emit DcaTaskDeleted(msg.sender, _taskId);
     }
@@ -183,57 +201,73 @@ contract MagicDCA is AutomateTaskCreator {
         // Check if the task exists
         require(task.id != 0, "Task does not exist");
 
+        // Update the lastExecuted timestamp and count
+        task.lastExecuted = block.timestamp;
+        task.count += 1;
+
+        if (task.count >= task.maxCount) {
+            _cancelTask(task.gelatoTaskId);
+        }
+
         // 1. Move USDC from user wallet to this contract
         TransferHelper.safeTransferFrom(
             USDC,
-            msg.sender,
+            owner,
             address(this),
             task.amount
         );
 
-        // 2. Calculate gelato fee (placeholder, replace with actual calculation)
-        (uint256 fee, address feeToken) = _getFeeDetails();
+        // 2. Calculate gelato fee
+        (uint256 taskFee, address taskFeeToken) = _getFeeDetails();
 
         // TODO: Check if fee token is USDC, if not, convert to USDC
-        uint256 amountAfterFee = task.amount - fee;
+        uint256 amountAfterFee = task.amount - taskFee;
 
         // 3. Approve USDC from this contract to Swap router - minus gelato fee
         TransferHelper.safeApprove(USDC, address(swapRouter), amountAfterFee);
+
+        // Create performed swaps array
+        PerformedSwap[] memory performedSwaps = new PerformedSwap[](
+            task.outputSwaps.length
+        );
 
         // 4. Loop through output swaps
         for (uint256 i = 0; i < task.outputSwaps.length; i++) {
             OutputSwap memory outputSwap = task.outputSwaps[i];
             uint256 amountIn = (amountAfterFee * outputSwap.percentage) / 100;
 
-            // 4.a: Fetch price from oracle (if required)
-            // Placeholder for fetching price from oracle
+            // 4.a: Fetch price from oracle
             (int price, uint8 decimals) = getLatestPrice(outputSwap.token);
             int minOutput = (int(amountIn) * price) / int(10 ** decimals);
 
-            // 4.b: Perform Uniswap Swap
+            // 4.b: Build Uniswap Swap
             ISwapRouter.ExactInputSingleParams memory params = ISwapRouter
                 .ExactInputSingleParams({
                     tokenIn: USDC,
                     tokenOut: outputSwap.token,
                     fee: 3000,
-                    recipient: msg.sender,
+                    recipient: owner,
                     deadline: block.timestamp,
                     amountIn: amountIn,
                     amountOutMinimum: uint256(minOutput),
                     sqrtPriceLimitX96: 0
                 });
 
-            // Execute the swap
-            swapRouter.exactInputSingle(params);
-        }
+            // 4.c: Execute the swap
+            uint256 amountOut = swapRouter.exactInputSingle(params);
 
+            // Update the performed swaps array
+            performedSwaps[i] = PerformedSwap({
+                tokenIn: USDC,
+                tokenOut: outputSwap.token,
+                amountIn: amountIn,
+                amountOut: amountOut
+            });
+        }
         // 5. Pay for gelato fee (if applicable)
         // TODO: Uncomment this
         // _transfer(fee, feeToken);
 
-        // Update the lastExecuted timestamp
-        task.lastExecuted = block.timestamp;
-
-        emit DcaTaskExecuted(owner, _id);
+        emit DcaTaskExecuted(owner, _id, performedSwaps, taskFee, taskFeeToken);
     }
 }
