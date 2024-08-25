@@ -57,7 +57,7 @@ export function CustomConnectButton() {
               }
 
               return (
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-2 justify-end">
                   <Button
                     onClick={openChainModal}
                     type="button"
@@ -80,7 +80,7 @@ export function CustomConnectButton() {
                         )}
                       </div>
                     )}
-                    <span className="hidden sm:inline-block sm:ml-2">{chain.name}</span>
+                    <span className="hidden md:inline-block md:ml-2">{chain.name}</span>
                   </Button>
 
                   <Button onClick={openAccountModal} type="button" className="w-auto p-2 sm:p-3">

@@ -1,6 +1,6 @@
 const deployedContracts = {
     DCAScheduler: {
-      address: '0xF7bB44598f205E2e37e0fA8bC308BfD768E99E73',
+      address: '0x64A7D5057C435eD74a058dF66Ea252dB0AE8a2CE',
       abi: [
         {
           "inputs": [
@@ -8,61 +8,20 @@ const deployedContracts = {
               "internalType": "address payable",
               "name": "_automate",
               "type": "address"
+            },
+            {
+              "internalType": "contract ISwapRouter",
+              "name": "_swapRouter",
+              "type": "address"
+            },
+            {
+              "internalType": "address",
+              "name": "_feeToken",
+              "type": "address"
             }
           ],
           "stateMutability": "nonpayable",
           "type": "constructor"
-        },
-        {
-          "inputs": [
-            {
-              "internalType": "address",
-              "name": "target",
-              "type": "address"
-            }
-          ],
-          "name": "AddressEmptyCode",
-          "type": "error"
-        },
-        {
-          "inputs": [
-            {
-              "internalType": "address",
-              "name": "account",
-              "type": "address"
-            }
-          ],
-          "name": "AddressInsufficientBalance",
-          "type": "error"
-        },
-        {
-          "inputs": [],
-          "name": "FailedInnerCall",
-          "type": "error"
-        },
-        {
-          "inputs": [
-            {
-              "internalType": "address",
-              "name": "token",
-              "type": "address"
-            }
-          ],
-          "name": "SafeERC20FailedOperation",
-          "type": "error"
-        },
-        {
-          "anonymous": false,
-          "inputs": [
-            {
-              "indexed": false,
-              "internalType": "bytes32",
-              "name": "taskId",
-              "type": "bytes32"
-            }
-          ],
-          "name": "CounterTaskCreated",
-          "type": "event"
         },
         {
           "anonymous": false,
@@ -84,6 +43,18 @@ const deployedContracts = {
               "internalType": "string",
               "name": "name",
               "type": "string"
+            },
+            {
+              "indexed": false,
+              "internalType": "uint256",
+              "name": "amount",
+              "type": "uint256"
+            },
+            {
+              "indexed": false,
+              "internalType": "uint128",
+              "name": "interval",
+              "type": "uint128"
             }
           ],
           "name": "DcaTaskCreated",
@@ -122,44 +93,59 @@ const deployedContracts = {
               "internalType": "uint256",
               "name": "taskId",
               "type": "uint256"
+            },
+            {
+              "components": [
+                {
+                  "internalType": "address",
+                  "name": "tokenIn",
+                  "type": "address"
+                },
+                {
+                  "internalType": "address",
+                  "name": "tokenOut",
+                  "type": "address"
+                },
+                {
+                  "internalType": "uint256",
+                  "name": "amountIn",
+                  "type": "uint256"
+                },
+                {
+                  "internalType": "uint256",
+                  "name": "amountOut",
+                  "type": "uint256"
+                }
+              ],
+              "indexed": false,
+              "internalType": "struct PerformedSwap[]",
+              "name": "swaps",
+              "type": "tuple[]"
+            },
+            {
+              "indexed": false,
+              "internalType": "uint256",
+              "name": "fee",
+              "type": "uint256"
+            },
+            {
+              "indexed": false,
+              "internalType": "address",
+              "name": "feeToken",
+              "type": "address"
             }
           ],
           "name": "DcaTaskExecuted",
           "type": "event"
         },
         {
-          "anonymous": false,
-          "inputs": [
-            {
-              "indexed": true,
-              "internalType": "address",
-              "name": "user",
-              "type": "address"
-            },
-            {
-              "indexed": false,
-              "internalType": "uint256",
-              "name": "taskId",
-              "type": "uint256"
-            },
-            {
-              "indexed": false,
-              "internalType": "string",
-              "name": "name",
-              "type": "string"
-            }
-          ],
-          "name": "DcaTaskUpdated",
-          "type": "event"
-        },
-        {
           "inputs": [],
-          "name": "INTERVAL",
+          "name": "USDC",
           "outputs": [
             {
-              "internalType": "uint128",
+              "internalType": "address",
               "name": "",
-              "type": "uint128"
+              "type": "address"
             }
           ],
           "stateMutability": "view",
@@ -201,21 +187,26 @@ const deployedContracts = {
               "type": "uint256"
             },
             {
-              "internalType": "address",
-              "name": "_feeToken",
-              "type": "address"
+              "components": [
+                {
+                  "internalType": "address",
+                  "name": "token",
+                  "type": "address"
+                },
+                {
+                  "internalType": "uint8",
+                  "name": "percentage",
+                  "type": "uint8"
+                }
+              ],
+              "internalType": "struct OutputSwap[]",
+              "name": "_outputSwaps",
+              "type": "tuple[]"
             }
           ],
           "name": "createDcaTask",
           "outputs": [],
           "stateMutability": "nonpayable",
-          "type": "function"
-        },
-        {
-          "inputs": [],
-          "name": "createTask",
-          "outputs": [],
-          "stateMutability": "payable",
           "type": "function"
         },
         {
@@ -255,11 +246,6 @@ const deployedContracts = {
             },
             {
               "internalType": "uint256",
-              "name": "lastExecuted",
-              "type": "uint256"
-            },
-            {
-              "internalType": "uint256",
               "name": "count",
               "type": "uint256"
             },
@@ -269,9 +255,24 @@ const deployedContracts = {
               "type": "uint256"
             },
             {
-              "internalType": "address",
-              "name": "feeToken",
-              "type": "address"
+              "internalType": "bytes32",
+              "name": "gelatoTaskId",
+              "type": "bytes32"
+            },
+            {
+              "internalType": "uint256",
+              "name": "created",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "lastExecuted",
+              "type": "uint256"
+            },
+            {
+              "internalType": "bool",
+              "name": "active",
+              "type": "bool"
             }
           ],
           "stateMutability": "view",
@@ -306,6 +307,11 @@ const deployedContracts = {
         {
           "inputs": [
             {
+              "internalType": "address",
+              "name": "owner",
+              "type": "address"
+            },
+            {
               "internalType": "uint256",
               "name": "_id",
               "type": "uint256"
@@ -314,6 +320,19 @@ const deployedContracts = {
           "name": "executeDcaTask",
           "outputs": [],
           "stateMutability": "nonpayable",
+          "type": "function"
+        },
+        {
+          "inputs": [],
+          "name": "feeToken",
+          "outputs": [
+            {
+              "internalType": "address",
+              "name": "",
+              "type": "address"
+            }
+          ],
+          "stateMutability": "view",
           "type": "function"
         },
         {
@@ -357,11 +376,6 @@ const deployedContracts = {
                 },
                 {
                   "internalType": "uint256",
-                  "name": "lastExecuted",
-                  "type": "uint256"
-                },
-                {
-                  "internalType": "uint256",
                   "name": "count",
                   "type": "uint256"
                 },
@@ -371,9 +385,41 @@ const deployedContracts = {
                   "type": "uint256"
                 },
                 {
-                  "internalType": "address",
-                  "name": "feeToken",
-                  "type": "address"
+                  "internalType": "bytes32",
+                  "name": "gelatoTaskId",
+                  "type": "bytes32"
+                },
+                {
+                  "components": [
+                    {
+                      "internalType": "address",
+                      "name": "token",
+                      "type": "address"
+                    },
+                    {
+                      "internalType": "uint8",
+                      "name": "percentage",
+                      "type": "uint8"
+                    }
+                  ],
+                  "internalType": "struct OutputSwap[]",
+                  "name": "outputSwaps",
+                  "type": "tuple[]"
+                },
+                {
+                  "internalType": "uint256",
+                  "name": "created",
+                  "type": "uint256"
+                },
+                {
+                  "internalType": "uint256",
+                  "name": "lastExecuted",
+                  "type": "uint256"
+                },
+                {
+                  "internalType": "bool",
+                  "name": "active",
+                  "type": "bool"
                 }
               ],
               "internalType": "struct DcaTask[]",
@@ -385,13 +431,62 @@ const deployedContracts = {
           "type": "function"
         },
         {
-          "inputs": [],
-          "name": "taskId",
+          "inputs": [
+            {
+              "internalType": "address",
+              "name": "token",
+              "type": "address"
+            }
+          ],
+          "name": "getLatestPrice",
           "outputs": [
             {
-              "internalType": "bytes32",
+              "internalType": "int256",
+              "name": "price",
+              "type": "int256"
+            },
+            {
+              "internalType": "uint8",
+              "name": "decimals",
+              "type": "uint8"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [],
+          "name": "receive",
+          "outputs": [],
+          "stateMutability": "payable",
+          "type": "function"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "address",
+              "name": "token",
+              "type": "address"
+            },
+            {
+              "internalType": "address",
+              "name": "oracle",
+              "type": "address"
+            }
+          ],
+          "name": "setOracle",
+          "outputs": [],
+          "stateMutability": "nonpayable",
+          "type": "function"
+        },
+        {
+          "inputs": [],
+          "name": "swapRouter",
+          "outputs": [
+            {
+              "internalType": "contract ISwapRouter",
               "name": "",
-              "type": "bytes32"
+              "type": "address"
             }
           ],
           "stateMutability": "view",
@@ -400,12 +495,36 @@ const deployedContracts = {
         {
           "inputs": [
             {
-              "internalType": "bytes32",
+              "internalType": "address",
               "name": "",
-              "type": "bytes32"
+              "type": "address"
             }
           ],
-          "name": "taskIds",
+          "name": "tokenToOracle",
+          "outputs": [
+            {
+              "internalType": "address",
+              "name": "",
+              "type": "address"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "address",
+              "name": "",
+              "type": "address"
+            },
+            {
+              "internalType": "uint256",
+              "name": "",
+              "type": "uint256"
+            }
+          ],
+          "name": "userTaskIds",
           "outputs": [
             {
               "internalType": "uint256",
