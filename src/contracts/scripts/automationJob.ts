@@ -93,7 +93,22 @@ async function executeTask(task: Task) {
         magicDcaContract
       );
 
-      await magicDCA.executeDcaTask(task.user, task.taskId); // Replace with the function that needs to be executed
+      const dedicatedMessageSigner = await magicDCA.dedicatedMsgSender();
+
+      //  impersonating dedicated sender's account
+      await hre.network.provider.request({
+        method: "hardhat_impersonateAccount",
+        params: [dedicatedMessageSigner],
+      });
+
+      const empersonatedExecuter = await hre.ethers.getSigner(
+        dedicatedMessageSigner
+      );
+
+      // Connect executer to DCA contract
+      const newDCA = magicDCA.connect(empersonatedExecuter);
+
+      await newDCA.executeDcaTask(task.user, task.taskId); // Replace with the function that needs to be executed
       console.log(`Task ${task.taskId} executed successfully.`);
 
       // Update the task state after execution

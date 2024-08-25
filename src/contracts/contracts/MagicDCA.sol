@@ -230,6 +230,7 @@ contract MagicDCA is AutomateTaskCreator {
         task.count += 1;
 
         if (task.count >= task.maxCount) {
+            task.active = false;
             _cancelTask(task.gelatoTaskId);
         }
 
@@ -289,7 +290,7 @@ contract MagicDCA is AutomateTaskCreator {
             });
         }
         // 5. Pay for gelato fee
-        _transfer(taskFee, taskFeeToken);
+        // _transfer(taskFee, taskFeeToken);
 
         emit DcaTaskExecuted(owner, _id, performedSwaps, taskFee, taskFeeToken);
     }
