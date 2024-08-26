@@ -79,7 +79,26 @@ async function monitorNewTasks() {
 }
 
 async function executeTask(task: Task) {
-  if (task.active && task.count < task.maxCount) {
+  // Check
+  const currentTime = Math.floor(Date.now() / 1000);
+
+  const taskInterval = task.interval;
+  const taskLastExecuted = task.lastExecuted;
+  const diff = BigInt(currentTime) - taskLastExecuted;
+  const formattedInterval = taskInterval / BigInt(1000);
+  console.log(
+    `Task ${task.taskId} - Current Time: ${currentTime}, Last Executed: ${taskLastExecuted}, Diff: ${diff}, Interval: ${formattedInterval}`
+  );
+
+  if (BigInt(currentTime) - task.lastExecuted >= formattedInterval) {
+    console.log(`\n\n\nSHOULD EXECUTE: ${task.taskId}\n\n\n`);
+  }
+
+  if (
+    task.active &&
+    task.count < task.maxCount &&
+    BigInt(currentTime) - task.lastExecuted >= formattedInterval
+  ) {
     console.log(`RUNNING Task ${task.taskId}`);
     try {
       const magicDCA = await hre.ethers.getContractAt(
@@ -122,7 +141,7 @@ async function checkTasks() {
     for (const task of tasks) {
       await executeTask(task);
     }
-    await new Promise((resolve) => setTimeout(resolve, 60000)); // Wait one second before checking again
+    await new Promise((resolve) => setTimeout(resolve, 30000)); // Wait one second before checking again
   }
 }
 

@@ -400,4 +400,68 @@ describe("MagicDCA", function () {
     //   console.log("Exchange Rate: ", swap.tokenIn / swap.tokenOut);
     // });
   });
+
+  it("Should add a new task to existing contract", async function () {
+    const constractAddress = "0x1c9788c5BB16EC5E449878fAe761206dfc3A6fEC";
+
+    let signers = await hre.ethers.getSigners();
+    const signer = signers[0];
+
+    const USDC = new hre.ethers.Contract(USDC_ADDRESS, ercAbi, signer);
+    const WETH = new hre.ethers.Contract(WETH_ADDRESS, ercAbi, signer);
+    const DAI = new hre.ethers.Contract(DAI_ADDRESS, ercAbi, signer);
+    const UNI = new hre.ethers.Contract(UNI_ADDRESS, ercAbi, signer);
+
+    const usdcBalanceBeforeDCA = await USDC.balanceOf(signer.address);
+    const usdcBalanceBeforeFormatted = Number(
+      hre.ethers.formatUnits(usdcBalanceBeforeDCA, USDC_DECIMALS)
+    );
+    console.log("USDC BEFORE Starting MAGIC DCA:", usdcBalanceBeforeFormatted);
+
+    const magicDCA = await hre.ethers.getContractAt(
+      "MagicDCA",
+      constractAddress
+    );
+    magicDCA.waitForDeployment();
+
+    const magicDCAAddress = await magicDCA.getAddress();
+    console.log("Magic DCA deployed to:", magicDCAAddress);
+
+    // Create DCA tasks
+    const newDca = {
+      name: "test",
+      amount: 20000000,
+      interval: 2000,
+      maxCount: 1,
+      outputSwaps: [
+        { token: WETH_ADDRESS, percentage: 25 },
+        // { token: WBTC_ADDRESS, percentage: 25 },
+        { token: LINK_ADDRESS, percentage: 50 },
+        { token: ARB_ADDRESS, percentage: 25 },
+        // { token: DAI_ADDRESS, percentage: 50 },
+        // { token: UNI_ADDRESS, percentage: 50 },
+      ],
+    };
+
+    // Aprove contract to use USDC
+    const approveTx = await USDC.approve(magicDCAAddress, usdcBalanceBeforeDCA);
+    approveTx.wait();
+
+    // Approve contract to use WETH
+    // const approveWETHTx = await WETH.approve(
+    //   magicDCAAddress,
+    //   hre.ethers.parseEther("0.2")
+    // );
+    // await approveWETHTx.wait();
+
+    // Set price feed oracleFor WETH and DAI
+
+    const dcaTask = await magicDCA.createDcaTask(
+      newDca.name,
+      newDca.amount,
+      newDca.interval,
+      newDca.maxCount,
+      newDca.outputSwaps
+    );
+  });
 });
